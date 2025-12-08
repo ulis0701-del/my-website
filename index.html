@@ -1,450 +1,676 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>南投薑母鴨價格分析與線上訂位</title>
+    <meta name="description" content="南投薑母鴨價格分析與線上訂位系統，提供最透明的價格試算與便捷的預約服務。">
+    <meta property="og:title" content="南投薑母鴨 - 價格分析與線上訂位">
+    <meta property="og:description" content="一份500元算貴嗎？來看看數據分析，並直接線上預約席位。">
+    <title>南投薑母鴨 | 價格分析與線上訂位</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
         
         body {
             font-family: 'Noto Sans TC', sans-serif;
             background-color: #FFF7ED;
+            color: #1f2937;
         }
 
         .chart-container {
             position: relative;
             width: 100%;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 350px;
-            max-height: 400px;
+            height: 300px;
         }
 
-        @media (max-width: 640px) {
-            .chart-container {
-                height: 300px;
-            }
+        @media (min-width: 768px) {
+            .chart-container { height: 350px; }
         }
 
+        /* Glassmorphism Card */
         .glass-card {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(251, 146, 60, 0.2);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
 
-        /* Loading Spinner */
-        .loader {
-            border: 3px solid #f3f3f3;
-            border-radius: 50%;
-            border-top: 3px solid #ea580c;
-            width: 20px;
-            height: 20px;
-            -webkit-animation: spin 1s linear infinite; /* Safari */
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #fff7ed; }
+        ::-webkit-scrollbar-thumb { background: #ea580c; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #c2410c; }
+        
+        /* Tab Animation */
+        .tab-btn.active {
+            color: #ea580c;
+            border-bottom: 2px solid #ea580c;
         }
     </style>
-
-    <!-- Chosen Palette: Warm Spicy Palette -->
-    <!-- Application Structure Update:
-        Added a new Section 5: "Reservation" at the bottom.
-        This section includes a form connected to Firebase Firestore via pure JS (Modular SDK).
-    -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
 </head>
-<body class="text-slate-800">
+<body class="antialiased">
 
     <!-- Navigation -->
-    <nav class="sticky top-0 z-50 bg-white shadow-md border-b border-orange-100">
+    <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow-md border-b border-orange-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <i class="fa-solid fa-bowl-food text-orange-600 text-2xl mr-2"></i>
-                    <span class="font-bold text-xl text-orange-800">薑母鴨情報與訂位</span>
+                <div class="flex items-center cursor-pointer" onclick="window.scrollTo(0,0)">
+                    <div class="w-10 h-10 bg-orange-600 rounded-full flex items-center justify-center text-white mr-3">
+                        <i class="fa-solid fa-fire"></i>
+                    </div>
+                    <span class="font-bold text-xl text-gray-800 tracking-wider">南投薑母鴨</span>
                 </div>
-                <div class="hidden md:flex space-x-6 items-center">
-                    <button onclick="scrollToSection('verdict')" class="hover:text-orange-600 font-medium transition">價格診斷</button>
-                    <button onclick="scrollToSection('national')" class="hover:text-orange-600 font-medium transition">全台比價</button>
-                    <button onclick="scrollToSection('analysis')" class="hover:text-orange-600 font-medium transition">成本分析</button>
-                    <button onclick="scrollToSection('calculator')" class="hover:text-orange-600 font-medium transition">試算</button>
-                    <!-- Reservation Button Highlight -->
-                    <button onclick="scrollToSection('reservation')" class="bg-orange-600 text-white px-4 py-2 rounded-full hover:bg-orange-700 transition shadow-lg flex items-center">
-                        <i class="fa-solid fa-calendar-check mr-2"></i> 線上訂位
+                
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex space-x-8 items-center">
+                    <a href="#analysis" class="text-gray-600 hover:text-orange-600 font-medium transition">價格分析</a>
+                    <a href="#menu" class="text-gray-600 hover:text-orange-600 font-medium transition">老饕推薦</a>
+                    <a href="#info" class="text-gray-600 hover:text-orange-600 font-medium transition">店家資訊</a>
+                    <a href="#reservation" class="bg-gradient-to-r from-orange-500 to-red-600 text-white px-5 py-2 rounded-full hover:shadow-lg transition transform hover:-translate-y-0.5 font-bold">
+                        <i class="fa-solid fa-calendar-check mr-2"></i>立即訂位
+                    </a>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <div class="flex items-center md:hidden">
+                    <button onclick="document.getElementById('mobileMenu').classList.toggle('hidden')" class="text-gray-600 hover:text-orange-600 p-2">
+                        <i class="fa-solid fa-bars text-2xl"></i>
                     </button>
                 </div>
             </div>
         </div>
+        <!-- Mobile Menu Dropdown -->
+        <div id="mobileMenu" class="hidden md:hidden bg-white border-t border-gray-100 p-4 shadow-lg">
+            <a href="#analysis" class="block py-3 text-gray-600 font-medium border-b border-gray-50">價格分析</a>
+            <a href="#menu" class="block py-3 text-gray-600 font-medium border-b border-gray-50">老饕推薦</a>
+            <a href="#reservation" class="block py-3 text-orange-600 font-bold">立即訂位</a>
+        </div>
     </nav>
 
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
-
-        <!-- SECTION 1: Verdict -->
-        <section id="verdict" class="space-y-6">
-            <div class="text-center space-y-4">
-                <h1 class="text-3xl md:text-5xl font-bold text-orange-900 leading-tight">
-                    南投一份 <span class="text-red-600">500元</span> 算正常嗎？
-                </h1>
-                <p class="text-lg text-gray-600 max-w-2xl mx-auto">
-                    市場數據分析與線上預約系統。
-                </p>
+    <!-- Hero Section -->
+    <header class="relative bg-gray-900 text-white overflow-hidden">
+        <div class="absolute inset-0">
+            <div class="absolute inset-0 bg-gradient-to-r from-black via-gray-900 to-transparent z-10"></div>
+            <img src="https://images.unsplash.com/photo-1541544741938-0af808871cc2?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80" alt="Ginger Duck Pot" class="w-full h-full object-cover opacity-40">
+        </div>
+        
+        <div class="relative z-20 max-w-7xl mx-auto px-4 py-24 sm:px-6 lg:px-8 flex flex-col justify-center min-h-[500px]">
+            <span class="text-orange-400 font-bold tracking-widest uppercase mb-2">Winter Special</span>
+            <h1 class="text-4xl md:text-6xl font-black mb-6 leading-tight">
+                炭火慢燉，暖心入魂<br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">南投最頂級的全酒薑母鴨</span>
+            </h1>
+            <p class="text-lg md:text-xl text-gray-300 max-w-2xl mb-10 leading-relaxed">
+                堅持使用飼養 120 天紅面番鴨公，古法黑麻油爆炒老薑。一份 500 元的價格，蘊含著我們對品質的絕對堅持。
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4">
+                <a href="#analysis" class="px-8 py-4 bg-white text-gray-900 rounded-lg font-bold hover:bg-gray-100 transition text-center shadow-lg">
+                    了解價格與食材
+                </a>
+                <a href="#reservation" class="px-8 py-4 bg-orange-600 text-white rounded-lg font-bold hover:bg-orange-700 transition text-center shadow-lg flex items-center justify-center">
+                    <i class="fa-solid fa-utensils mr-2"></i> 查詢與訂位
+                </a>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="glass-card rounded-2xl p-6 border-t-4 border-red-500">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-bold text-gray-800">價格診斷</h3>
-                        <i class="fa-solid fa-gavel text-red-500 text-2xl"></i>
-                    </div>
-                    <div class="text-4xl font-bold text-red-600 mb-2">偏高</div>
-                    <p class="text-gray-600">高於市場均價約 30%，但若含紅面番鴨與全酒則屬合理。</p>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-20">
+
+        <!-- SECTION 1: Analysis & Verdict -->
+        <section id="analysis" class="scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-800">關於那「500元」的爭議</h2>
+                <div class="w-20 h-1 bg-orange-500 mx-auto mt-4 rounded-full"></div>
+                <p class="text-gray-500 mt-4 max-w-2xl mx-auto">我們用數據說話。為什麼我們的鍋底比連鎖店貴？因為我們給您的，是不一樣的東西。</p>
+            </div>
+
+            <!-- Analysis Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                <div class="glass-card p-8 rounded-2xl relative overflow-hidden group hover:-translate-y-2 transition duration-300">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-red-100 rounded-bl-full -mr-4 -mt-4 transition group-hover:bg-red-200"></div>
+                    <i class="fa-solid fa-scale-unbalanced text-4xl text-red-500 mb-4 relative z-10"></i>
+                    <h3 class="text-xl font-bold mb-2">價格定位</h3>
+                    <p class="text-gray-600">高於全台均價 30%，屬於<span class="text-red-600 font-bold">高端市場</span>定位。我們不打價格戰，只打品質戰。</p>
                 </div>
-                <div class="glass-card rounded-2xl p-6 border-t-4 border-yellow-500">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-bold text-gray-800">關鍵因素</h3>
-                        <i class="fa-solid fa-magnifying-glass-chart text-yellow-500 text-2xl"></i>
-                    </div>
-                    <ul class="space-y-2 text-gray-600 text-sm">
-                        <li><i class="fa-solid fa-check text-yellow-500 mr-2"></i>紅面番鴨公 (成本+40%)</li>
-                        <li><i class="fa-solid fa-check text-yellow-500 mr-2"></i>全酒料理 (不加水)</li>
-                        <li><i class="fa-solid fa-check text-yellow-500 mr-2"></i>炭火陶鍋 (人力成本)</li>
-                    </ul>
+                <div class="glass-card p-8 rounded-2xl relative overflow-hidden group hover:-translate-y-2 transition duration-300">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-yellow-100 rounded-bl-full -mr-4 -mt-4 transition group-hover:bg-yellow-200"></div>
+                    <i class="fa-solid fa-drumstick-bite text-4xl text-yellow-600 mb-4 relative z-10"></i>
+                    <h3 class="text-xl font-bold mb-2">食材關鍵</h3>
+                    <p class="text-gray-600">選用<span class="text-yellow-700 font-bold">紅面番鴨公</span>(成本+40%)與<span class="text-yellow-700 font-bold">純米酒</span>不加水。一分錢，一分貨。</p>
                 </div>
-                <div class="glass-card rounded-2xl p-6 border-t-4 border-green-500">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-bold text-gray-800">建議</h3>
-                        <i class="fa-solid fa-chart-line text-green-500 text-2xl"></i>
-                    </div>
-                    <p class="text-gray-600">若人數超過 3 人，選擇 500 元大鍋底並加點平價配菜，CP 值反而高於連鎖小火鍋。</p>
+                <div class="glass-card p-8 rounded-2xl relative overflow-hidden group hover:-translate-y-2 transition duration-300">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-green-100 rounded-bl-full -mr-4 -mt-4 transition group-hover:bg-green-200"></div>
+                    <i class="fa-solid fa-users text-4xl text-green-600 mb-4 relative z-10"></i>
+                    <h3 class="text-xl font-bold mb-2">消費建議</h3>
+                    <p class="text-gray-600">大鍋份量適合 <span class="text-green-700 font-bold">3-4人</span> 聚餐。平均分攤後，人均消費其實與平價店相仿。</p>
                 </div>
             </div>
-        </section>
 
-        <!-- SECTION 2: National Comparison -->
-        <section id="national" class="bg-white rounded-3xl p-8 shadow-sm">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-l-4 border-orange-500 pl-4">全台行情比較</h2>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-2">
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+                    <h3 class="font-bold text-gray-700 mb-4 border-l-4 border-orange-500 pl-3">全台行情比較圖</h3>
                     <div class="chart-container">
                         <canvas id="nationalPriceChart"></canvas>
                     </div>
                 </div>
-                <div class="flex flex-col justify-center space-y-4 text-sm text-gray-600">
-                    <p><strong>北部 (雙北):</strong> 均價 450-480 元，店租成本高。</p>
-                    <p><strong>中部 (南投/台中):</strong> 均價 350-400 元。500元屬於特色名店價格。</p>
-                    <p><strong>南部:</strong> 均價 350 元，通常配料較優惠。</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- SECTION 3: Cost Analysis -->
-        <section id="analysis" class="space-y-6">
-            <h2 class="text-2xl font-bold text-gray-800 text-center">500元的成本結構</h2>
-            <div class="bg-white p-6 rounded-3xl shadow-sm flex flex-col items-center justify-center">
-                <div class="chart-container" style="height: 300px; max-width: 300px;">
-                    <canvas id="costBreakdownChart"></canvas>
-                </div>
-                <p class="text-xs text-gray-400 mt-4">食材成本佔比最高 (鴨肉/老薑/麻油)</p>
-            </div>
-        </section>
-
-        <!-- SECTION 4: Calculator -->
-        <section id="calculator" class="bg-orange-600 rounded-3xl p-8 text-white shadow-xl">
-            <h2 class="text-3xl font-bold mb-6">價格試算器</h2>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm text-orange-200 mb-1">鍋底</label>
-                        <select id="potType" class="w-full p-2 rounded text-gray-800"><option value="380">標準 (380)</option><option value="500">頂級 (500)</option></select>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div><label class="block text-sm text-orange-200">蔬菜/配料盤數</label><input type="number" id="vegCount" value="4" class="w-full p-2 rounded text-gray-800"></div>
-                        <div><label class="block text-sm text-orange-200">飲料/酒水瓶數</label><input type="number" id="drinkCount" value="2" class="w-full p-2 rounded text-gray-800"></div>
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+                    <h3 class="font-bold text-gray-700 mb-4 border-l-4 border-orange-500 pl-3">500元成本結構解密</h3>
+                    <div class="chart-container flex justify-center">
+                        <canvas id="costBreakdownChart"></canvas>
                     </div>
                 </div>
-                <div class="flex flex-col justify-center items-center bg-white bg-opacity-10 rounded-xl p-4">
-                    <span class="text-sm text-orange-200">預估總價</span>
-                    <span class="text-5xl font-bold my-2" id="totalPrice">--</span>
-                    <span class="text-xs text-orange-200" id="avgPrice"></span>
-                </div>
             </div>
         </section>
 
-        <!-- NEW SECTION 5: Firebase Reservation -->
-        <section id="reservation" class="scroll-mt-24">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-0 shadow-2xl rounded-3xl overflow-hidden">
-                <!-- Left: Info -->
-                <div class="bg-gray-900 p-10 text-white flex flex-col justify-center relative overflow-hidden">
-                    <div class="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-orange-600 rounded-full opacity-20 blur-3xl"></div>
-                    <div class="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-red-600 rounded-full opacity-20 blur-3xl"></div>
+        <!-- SECTION 2: Calculator -->
+        <section class="bg-gradient-to-br from-orange-600 to-red-700 rounded-3xl p-8 md:p-12 text-white shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl"></div>
+            
+            <div class="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-3xl font-bold mb-4">精打細算・價格試算器</h2>
+                    <p class="text-orange-100 mb-8">還是覺得貴嗎？輸入您的聚餐人數與預計點餐內容，讓我們幫您算出最真實的人均消費。</p>
                     
-                    <h2 class="text-3xl font-bold mb-6">想親自品嚐？<br><span class="text-orange-500">立即線上訂位</span></h2>
-                    <p class="text-gray-400 mb-8 leading-relaxed">
-                        我們使用即時雲端系統，您的訂位將直接傳送至餐廳後台。請填寫下方資訊，我們將保留您的席位 10 分鐘。
-                    </p>
                     <div class="space-y-4">
-                        <div class="flex items-center">
-                            <div class="w-10 h-10 rounded-full bg-orange-900 flex items-center justify-center mr-4 text-orange-500"><i class="fa-solid fa-phone"></i></div>
-                            <div>
-                                <p class="text-xs text-gray-500">訂位專線</p>
-                                <p class="font-bold">049-2xxx-xxxx</p>
-                            </div>
+                        <div class="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
+                            <label class="block text-xs text-orange-200 mb-1">選擇鍋底</label>
+                            <select id="potType" class="w-full bg-transparent border-b border-orange-300 text-xl font-bold focus:outline-none option:text-gray-800">
+                                <option value="380" class="text-gray-800">一般薑母鴨 (380元)</option>
+                                <option value="500" class="text-gray-800" selected>頂級紅面番鴨 (500元)</option>
+                            </select>
                         </div>
-                        <div class="flex items-center">
-                            <div class="w-10 h-10 rounded-full bg-orange-900 flex items-center justify-center mr-4 text-orange-500"><i class="fa-solid fa-location-dot"></i></div>
-                            <div>
-                                <p class="text-xs text-gray-500">餐廳地址</p>
-                                <p class="font-bold">南投縣南投市...</p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
+                                <label class="block text-xs text-orange-200 mb-1">加點配菜(盤)</label>
+                                <input type="number" id="vegCount" value="4" min="0" class="w-full bg-transparent border-b border-orange-300 text-2xl font-bold text-center focus:outline-none">
+                            </div>
+                            <div class="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
+                                <label class="block text-xs text-orange-200 mb-1">用餐人數(位)</label>
+                                <input type="number" id="peopleCount" value="4" min="1" class="w-full bg-transparent border-b border-orange-300 text-2xl font-bold text-center focus:outline-none">
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right: Form -->
-                <div class="bg-white p-10 relative">
-                    <div id="bookingSuccess" class="hidden absolute inset-0 bg-white z-10 flex flex-col items-center justify-center text-center p-8">
-                        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
-                            <i class="fa-solid fa-check text-4xl text-green-600"></i>
+                <div class="bg-white text-gray-800 p-8 rounded-2xl shadow-lg flex flex-col justify-between h-full">
+                    <div>
+                        <p class="text-gray-500 text-sm font-bold uppercase tracking-wider">預估結帳總金額</p>
+                        <div class="flex items-baseline mt-2">
+                            <span class="text-5xl font-black text-orange-600 tracking-tighter" id="totalPrice">--</span>
+                            <span class="text-gray-400 ml-2">TWD</span>
                         </div>
-                        <h3 class="text-2xl font-bold text-gray-800 mb-2">預約成功！</h3>
-                        <p class="text-gray-600 mb-6">我們已收到您的訂位資訊，<br>期待您的光臨。</p>
-                        <button onclick="resetForm()" class="text-orange-600 font-bold hover:underline">再預約一筆</button>
+                        <div class="w-full h-px bg-gray-200 my-6"></div>
+                        <p class="text-gray-500 text-sm font-bold uppercase tracking-wider">平均每人消費</p>
+                        <div class="flex items-baseline mt-2">
+                            <span class="text-4xl font-black text-gray-800 tracking-tighter" id="avgPrice">--</span>
+                            <span class="text-gray-400 ml-2">元/人</span>
+                        </div>
                     </div>
+                    <div class="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-100 text-sm text-gray-600">
+                        <i class="fa-solid fa-circle-info text-orange-500 mr-2"></i>
+                        試算基準：配菜均價 50 元/盤。此價格僅供參考，實際以現場為準。
+                    </div>
+                </div>
+            </div>
+        </section>
 
-                    <h3 class="text-xl font-bold text-gray-800 mb-6">填寫訂位資訊</h3>
-                    <form id="bookingForm" class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">日期</label>
-                                <input type="date" id="rDate" required class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 focus:outline-none focus:border-orange-500 transition">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">時間</label>
-                                <input type="time" id="rTime" required class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 focus:outline-none focus:border-orange-500 transition">
-                            </div>
-                        </div>
+        <!-- SECTION 3: Menu (Visuals) -->
+        <section id="menu" class="scroll-mt-24">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-bold text-gray-800">老饕必點・推薦好料</h2>
+                <p class="text-gray-500 mt-2">這些配角，是讓主角更出色的秘密。</p>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <!-- Menu Item 1: Duck Meatballs -->
+                <div class="group cursor-pointer">
+                    <div class="aspect-square bg-gray-200 rounded-2xl overflow-hidden mb-3 relative">
+                        <img src="https://images.unsplash.com/photo-1529042410759-befb1204b468?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="鴨肉丸" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                        <div class="absolute bottom-0 left-0 bg-black/50 text-white text-xs px-2 py-1 m-2 rounded">人氣 No.1</div>
+                    </div>
+                    <h3 class="font-bold text-gray-800">手工鴨肉丸</h3>
+                    <p class="text-orange-600 font-bold text-sm">$60</p>
+                </div>
+                <!-- Menu Item 2: Noodles -->
+                <div class="group cursor-pointer">
+                    <div class="aspect-square bg-gray-200 rounded-2xl overflow-hidden mb-3 relative">
+                        <img src="https://images.unsplash.com/photo-1585032226651-759b368d7246?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="麵線" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                    </div>
+                    <h3 class="font-bold text-gray-800">麻油麵線</h3>
+                    <p class="text-orange-600 font-bold text-sm">$40</p>
+                </div>
+                <!-- Menu Item 3: Cabbage (Fixed) -->
+                <div class="group cursor-pointer">
+                    <div class="aspect-square bg-gray-200 rounded-2xl overflow-hidden mb-3 relative">
+                        <!-- 替換成新的高麗菜圖片 -->
+                        <img src="https://images.unsplash.com/photo-1628773822503-93032378b71e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="高麗菜" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                    </div>
+                    <h3 class="font-bold text-gray-800">高山高麗菜</h3>
+                    <p class="text-orange-600 font-bold text-sm">$50</p>
+                </div>
+                <!-- Menu Item 4: Rice Blood Cake (Fixed) -->
+                <div class="group cursor-pointer">
+                    <div class="aspect-square bg-gray-200 rounded-2xl overflow-hidden mb-3 relative">
+                        <!-- 替換成新的米血糕示意圖 (接近的深色切塊食物) -->
+                        <img src="https://images.unsplash.com/photo-1514326640560-7d063ef2aed5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="米血糕" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                    </div>
+                    <h3 class="font-bold text-gray-800">手工米血糕</h3>
+                    <p class="text-orange-600 font-bold text-sm">$50</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: Reservation & Check -->
+        <section id="reservation" class="scroll-mt-24">
+            <div class="bg-white rounded-3xl shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-5 min-h-[600px]">
+                
+                <!-- Left: Info & Map -->
+                <div class="lg:col-span-2 bg-gray-900 text-white p-8 md:p-10 flex flex-col justify-between relative">
+                    <div class="relative z-10">
+                        <h2 class="text-3xl font-bold mb-2">線上訂位服務</h2>
+                        <p class="text-gray-400 mb-8">24小時開放，免打電話，即時確認。</p>
                         
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">姓名</label>
-                            <input type="text" id="rName" placeholder="王大明" required class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 focus:outline-none focus:border-orange-500 transition">
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">電話</label>
-                                <input type="tel" id="rPhone" placeholder="0912-345678" required class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 focus:outline-none focus:border-orange-500 transition">
+                        <div class="space-y-6">
+                            <div class="flex items-start">
+                                <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mr-4 text-orange-500 shrink-0">
+                                    <i class="fa-solid fa-location-dot"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-500 uppercase font-bold">地址</p>
+                                    <p class="font-medium">南投縣南投市中興路...</p>
+                                    <a href="#" class="text-xs text-orange-400 hover:text-orange-300 underline mt-1">開啟 Google Maps</a>
+                                </div>
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">人數</label>
-                                <select id="rGuests" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 focus:outline-none focus:border-orange-500 transition">
-                                    <option value="2">2 位</option>
-                                    <option value="3">3 位</option>
-                                    <option value="4" selected>4 位</option>
-                                    <option value="5">5 位</option>
-                                    <option value="6">6 位</option>
-                                    <option value="7">7 位以上</option>
-                                </select>
+                            <div class="flex items-start">
+                                <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mr-4 text-orange-500 shrink-0">
+                                    <i class="fa-solid fa-clock"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-500 uppercase font-bold">營業時間</p>
+                                    <p class="font-medium">每日 16:00 - 01:00</p>
+                                    <p class="text-xs text-gray-400">最後收客 00:00</p>
+                                </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">備註 (選填)</label>
-                            <textarea id="rNote" rows="2" placeholder="例如：需要兒童椅、不吃香菜..." class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 focus:outline-none focus:border-orange-500 transition"></textarea>
+                    <!-- Placeholder Map -->
+                    <div class="mt-8 h-48 bg-gray-800 rounded-xl overflow-hidden relative group cursor-pointer">
+                        <div class="absolute inset-0 flex items-center justify-center group-hover:bg-black/20 transition">
+                            <span class="bg-white text-gray-900 px-4 py-2 rounded-full text-sm font-bold shadow-lg">查看地圖</span>
                         </div>
-
-                        <button type="submit" id="submitBtn" class="w-full bg-orange-600 text-white font-bold py-4 rounded-lg hover:bg-orange-700 transition transform hover:-translate-y-1 flex justify-center items-center">
-                            <span id="btnText">確認訂位</span>
-                            <div id="btnLoader" class="loader hidden ml-2"></div>
-                        </button>
-                    </form>
+                        <img src="https://images.unsplash.com/photo-1524661135-423995f22d0b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover opacity-50 grayscale hover:grayscale-0 transition duration-500">
+                    </div>
                 </div>
+
+                <!-- Right: Forms (Tabs) -->
+                <div class="lg:col-span-3 bg-white p-8 md:p-10">
+                    
+                    <!-- Tabs -->
+                    <div class="flex space-x-6 border-b border-gray-100 mb-8">
+                        <button onclick="switchTab('book')" id="tab-book" class="tab-btn active pb-4 text-lg font-bold text-gray-400 hover:text-gray-600 transition">
+                            我要訂位
+                        </button>
+                        <button onclick="switchTab('check')" id="tab-check" class="tab-btn pb-4 text-lg font-bold text-gray-400 hover:text-gray-600 transition">
+                            查詢訂單
+                        </button>
+                    </div>
+
+                    <!-- Booking Form -->
+                    <div id="content-book" class="animate-fade-in">
+                        <form id="bookingForm" class="space-y-5">
+                            <div class="grid grid-cols-2 gap-5">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">用餐日期</label>
+                                    <input type="date" id="rDate" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">時間</label>
+                                    <input type="time" id="rTime" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-1">訂位大名</label>
+                                <input type="text" id="rName" placeholder="王小明" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-5">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">手機號碼</label>
+                                    <input type="tel" id="rPhone" placeholder="0912345678" required class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">人數</label>
+                                    <select id="rGuests" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+                                        <option value="2">2 位</option>
+                                        <option value="3">3 位</option>
+                                        <option value="4" selected>4 位</option>
+                                        <option value="5">5-6 位</option>
+                                        <option value="7">7 位以上</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-1">備註需求</label>
+                                <textarea id="rNote" rows="2" placeholder="需要兒童椅、不吃香菜..." class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition"></textarea>
+                            </div>
+
+                            <button type="submit" id="submitBtn" class="w-full bg-orange-600 text-white font-bold py-4 rounded-xl hover:bg-orange-700 transition shadow-lg transform hover:-translate-y-1 flex justify-center items-center">
+                                <span>確認送出訂位</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Check Order Form -->
+                    <div id="content-check" class="hidden animate-fade-in">
+                        <div class="space-y-5">
+                            <p class="text-sm text-gray-500 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                <i class="fa-solid fa-circle-info text-blue-500 mr-2"></i>
+                                請輸入您訂位時留的「手機號碼」來查詢狀態。
+                            </p>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-1">手機號碼</label>
+                                <div class="flex gap-2">
+                                    <input type="tel" id="checkPhone" placeholder="0912345678" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+                                    <button onclick="checkReservation()" class="bg-gray-800 text-white px-6 rounded-xl font-bold hover:bg-black transition">查詢</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Result Area -->
+                            <div id="checkResult" class="mt-6"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="max-w-4xl mx-auto py-10">
+            <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">常見問題</h2>
+            <div class="space-y-4">
+                <details class="group bg-white rounded-xl shadow-sm border border-gray-100 cursor-pointer">
+                    <summary class="flex justify-between items-center p-5 font-bold text-gray-700 list-none">
+                        <span>請問附近好停車嗎？</span>
+                        <span class="transition group-open:rotate-180"><i class="fa-solid fa-chevron-down text-orange-400"></i></span>
+                    </summary>
+                    <div class="px-5 pb-5 text-gray-500 leading-relaxed">
+                        是的，店門口有約 5 個車位，若停滿，往前方 100 公尺有公有收費停車場，步行約 2 分鐘即可抵達。
+                    </div>
+                </details>
+                <details class="group bg-white rounded-xl shadow-sm border border-gray-100 cursor-pointer">
+                    <summary class="flex justify-between items-center p-5 font-bold text-gray-700 list-none">
+                        <span>可以刷卡或使用行動支付嗎？</span>
+                        <span class="transition group-open:rotate-180"><i class="fa-solid fa-chevron-down text-orange-400"></i></span>
+                    </summary>
+                    <div class="px-5 pb-5 text-gray-500 leading-relaxed">
+                        目前店內僅收現金，尚不支援信用卡或 LINE Pay，請見諒。店內設有 ATM 提款機可供使用。
+                    </div>
+                </details>
+                <details class="group bg-white rounded-xl shadow-sm border border-gray-100 cursor-pointer">
+                    <summary class="flex justify-between items-center p-5 font-bold text-gray-700 list-none">
+                        <span>可以帶寵物嗎？</span>
+                        <span class="transition group-open:rotate-180"><i class="fa-solid fa-chevron-down text-orange-400"></i></span>
+                    </summary>
+                    <div class="px-5 pb-5 text-gray-500 leading-relaxed">
+                        基於食品衛生考量，寵物需置於寵物籃或推車內，且不落地、不吠叫影響他人用餐即可。
+                    </div>
+                </details>
             </div>
         </section>
 
         <!-- Footer -->
-        <footer class="text-center text-gray-400 text-sm py-8 border-t border-orange-100">
-            <p>本系統示範如何在 GitHub Pages 上使用 Firebase 資料庫。</p>
+        <footer class="bg-gray-900 text-gray-400 py-12 border-t border-gray-800">
+            <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
+                <div>
+                    <div class="flex items-center justify-center md:justify-start text-white text-xl font-bold mb-4">
+                        <i class="fa-solid fa-fire text-orange-600 mr-2"></i> 南投薑母鴨
+                    </div>
+                    <p class="text-sm leading-relaxed">
+                        傳承三十年的好味道，堅持使用頂級食材，<br>只為給您最溫暖的冬天。
+                    </p>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold mb-4">快速連結</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#analysis" class="hover:text-orange-500 transition">價格分析</a></li>
+                        <li><a href="#reservation" class="hover:text-orange-500 transition">線上訂位</a></li>
+                        <li><a href="#" class="hover:text-orange-500 transition">粉絲專頁</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold mb-4">聯絡我們</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><i class="fa-solid fa-phone mr-2"></i> 049-2xxx-xxxx</li>
+                        <li><i class="fa-solid fa-envelope mr-2"></i> service@gingerduck.tw</li>
+                        <li><i class="fa-solid fa-clock mr-2"></i> 16:00 - 01:00</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-12 text-center text-xs text-gray-600 border-t border-gray-800 pt-8">
+                &copy; 2024 Nantou Ginger Duck. All rights reserved. Designed for Demo.
+            </div>
         </footer>
 
     </main>
 
     <script type="module">
         // -----------------------------------------------------------
-        // 1. FIREBASE SETUP (MODULAR SDK)
+        // 1. FIREBASE SETUP
         // -----------------------------------------------------------
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, serverTimestamp } 
+        import { getFirestore, collection, addDoc, getDocs, query, where, serverTimestamp } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // =================================================================
-        // TODO: 請在此處替換成您自己的 Firebase 設定
-        // 1. 去 firebase.google.com 建立專案
-        // 2. 新增 Web App 取得設定
-        // 3. 在 Firestore Database 規則中設定 "allow read, write: if true;" (測試用)
+        // TODO: 請在此處替換成您自己的 Firebase Config
         // =================================================================
-        const firebaseConfig = {
-            apiKey: "AIzaSyAYgc49iXduqsebhzgORrQlUZ-goW4U3kk",
-            authDomain: "ginger-duck-booking.firebaseapp.com",
-            projectId: "ginger-duck-booking",
-            storageBucket: "ginger-duck-booking.firebasestorage.app",
-            messagingSenderId: "944895605206",
-            appId: "1:944895605206:web:f2e006b9dcd0749a478c77",
-            measurementId: "G-72Z5CRG1RF"
-        };
+const firebaseConfig = {
+  apiKey: "AIzaSyAYgc49iXduqsebhzgORrQlUZ-goW4U3kk",
+  authDomain: "ginger-duck-booking.firebaseapp.com",
+  projectId: "ginger-duck-booking",
+  storageBucket: "ginger-duck-booking.firebasestorage.app",
+  messagingSenderId: "944895605206",
+  appId: "1:944895605206:web:f2e006b9dcd0749a478c77",
+  measurementId: "G-72Z5CRG1RF"
+};
 
-        // Initialize Firebase
-        // 注意：為了避免未填寫設定導致報錯，這裡加了 try-catch
         let db;
         try {
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
-            console.log("Firebase initialized successfully");
         } catch (e) {
-            console.warn("Firebase尚未設定，請在程式碼中填入您的 Config");
+            console.warn("Firebase Config Missing");
         }
 
         // -----------------------------------------------------------
-        // 2. RESERVATION LOGIC
+        // 2. LOGIC: Booking & Checking
         // -----------------------------------------------------------
-        const bookingForm = document.getElementById('bookingForm');
-        const submitBtn = document.getElementById('submitBtn');
-        const btnText = document.getElementById('btnText');
-        const btnLoader = document.getElementById('btnLoader');
-        const bookingSuccess = document.getElementById('bookingSuccess');
-
-        bookingForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        
+        // Tab Switching
+        window.switchTab = function(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active', 'text-orange-600'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
             
-            // 檢查 Firebase 是否初始化
-            if (!db) {
-                alert("系統錯誤：Firebase 尚未設定。請聯絡網站管理員。");
-                return;
-            }
+            document.getElementById('content-book').classList.add('hidden');
+            document.getElementById('content-check').classList.add('hidden');
+            document.getElementById(`content-${tab}`).classList.remove('hidden');
+        }
 
-            // UI Loading State
-            submitBtn.disabled = true;
-            btnText.innerText = "處理中...";
-            btnLoader.classList.remove('hidden');
+        // Submit Booking
+        document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!db) return Swal.fire('錯誤', 'Firebase 尚未設定', 'error');
 
-            // Collect Data
-            const formData = {
-                name: document.getElementById('rName').value,
-                phone: document.getElementById('rPhone').value,
-                date: document.getElementById('rDate').value,
-                time: document.getElementById('rTime').value,
-                guests: document.getElementById('rGuests').value,
-                note: document.getElementById('rNote').value,
-                createdAt: serverTimestamp() // 使用伺服器時間
-            };
+            const btn = document.getElementById('submitBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> 處理中...';
+            btn.disabled = true;
 
             try {
-                // 寫入資料庫 'reservations' 集合
-                const docRef = await addDoc(collection(db, "reservations"), formData);
-                console.log("Document written with ID: ", docRef.id);
+                const formData = {
+                    date: document.getElementById('rDate').value,
+                    time: document.getElementById('rTime').value,
+                    name: document.getElementById('rName').value,
+                    phone: document.getElementById('rPhone').value,
+                    guests: document.getElementById('rGuests').value,
+                    note: document.getElementById('rNote').value,
+                    status: 'pending', // pending, seated
+                    createdAt: serverTimestamp()
+                };
+
+                await addDoc(collection(db, "reservations"), formData);
                 
-                // Show Success Message
-                bookingSuccess.classList.remove('hidden');
+                Swal.fire({
+                    icon: 'success',
+                    title: '訂位成功！',
+                    text: '我們已收到您的預約，期待您的光臨。',
+                    confirmButtonColor: '#ea580c'
+                });
                 
+                document.getElementById('bookingForm').reset();
+
             } catch (error) {
-                console.error("Error adding document: ", error);
-                alert("訂位失敗，請稍後再試。\n錯誤訊息: " + error.message);
+                console.error(error);
+                Swal.fire('錯誤', '訂位失敗，請稍後再試', 'error');
             } finally {
-                // Reset UI
-                submitBtn.disabled = false;
-                btnText.innerText = "確認訂位";
-                btnLoader.classList.add('hidden');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
         });
 
-        // Expose reset function to window for the "再預約一筆" button
-        window.resetForm = function() {
-            bookingForm.reset();
-            bookingSuccess.classList.add('hidden');
+        // Check Reservation
+        window.checkReservation = async function() {
+            if (!db) return Swal.fire('錯誤', 'Firebase 尚未設定', 'error');
+            
+            const phone = document.getElementById('checkPhone').value;
+            if (!phone) return Swal.fire('提示', '請輸入手機號碼', 'warning');
+
+            const resultDiv = document.getElementById('checkResult');
+            resultDiv.innerHTML = '<div class="text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin"></i> 查詢中...</div>';
+
+            try {
+                // Query by phone number
+                const q = query(collection(db, "reservations"), where("phone", "==", phone));
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    resultDiv.innerHTML = `
+                        <div class="bg-gray-50 p-4 rounded-xl text-center border border-gray-200">
+                            <i class="fa-regular fa-face-frown text-2xl text-gray-400 mb-2"></i>
+                            <p class="text-gray-600">找不到此號碼 (${phone}) 的訂位紀錄。</p>
+                        </div>`;
+                } else {
+                    let html = '';
+                    querySnapshot.forEach((doc) => {
+                        const d = doc.data();
+                        const statusColor = d.status === 'seated' ? 'text-green-600 bg-green-50' : 'text-yellow-600 bg-yellow-50';
+                        const statusText = d.status === 'seated' ? '已報到' : '已確認 (未報到)';
+                        
+                        html += `
+                            <div class="bg-white border border-gray-100 shadow-sm rounded-xl p-4 mb-3 flex justify-between items-center relative overflow-hidden">
+                                <div class="absolute left-0 top-0 bottom-0 w-1 bg-orange-500"></div>
+                                <div>
+                                    <p class="font-bold text-gray-800">${d.date} ${d.time}</p>
+                                    <p class="text-sm text-gray-500">${d.name} / ${d.guests} 位</p>
+                                </div>
+                                <span class="text-xs font-bold px-3 py-1 rounded-full ${statusColor}">${statusText}</span>
+                            </div>
+                        `;
+                    });
+                    resultDiv.innerHTML = html;
+                }
+            } catch (error) {
+                console.error(error);
+                if(error.message.includes("index")) {
+                     Swal.fire('系統提示', '管理者請先建立 Firebase Index 才能使用查詢功能', 'info');
+                } else {
+                    resultDiv.innerHTML = '<p class="text-red-500 text-center">查詢發生錯誤</p>';
+                }
+            }
         };
 
         // -----------------------------------------------------------
-        // 3. EXISTING CHART & APP LOGIC
+        // 3. UI INITIALIZATION & CHARTS
         // -----------------------------------------------------------
         document.addEventListener('DOMContentLoaded', () => {
-            initNationalChart();
-            initCostChart();
-            updateCalc();
-            
-            // Set default date to today
+            initCharts();
+            initCalculator();
+            // Default date to today
             const dateInput = document.getElementById('rDate');
             if(dateInput) dateInput.valueAsDate = new Date();
         });
 
-        // Navigation
-        window.scrollToSection = function(id) {
-            const el = document.getElementById(id);
-            if (el) {
-                window.scrollTo({
-                    top: el.offsetTop - 80,
-                    behavior: 'smooth'
-                });
-            }
-        };
-
-        // Charts Logic
-        function initNationalChart() {
-            const ctx = document.getElementById('nationalPriceChart').getContext('2d');
-            new Chart(ctx, {
+        function initCharts() {
+            // National Chart
+            const ctx1 = document.getElementById('nationalPriceChart').getContext('2d');
+            new Chart(ctx1, {
                 type: 'bar',
                 data: {
-                    labels: ['雲嘉', '台南', '台中', '南投(均)', '台北', '南投(此店)'],
+                    labels: ['雲嘉(平價)', '台中(均價)', '台北(高價)', '本南投名店'],
                     datasets: [{
-                        label: '價格',
-                        data: [320, 360, 380, 380, 450, 500],
-                        backgroundColor: ['#e5e7eb','#e5e7eb','#e5e7eb','#fb923c','#e5e7eb','#dc2626'],
-                        borderRadius: 4
+                        label: '鍋底價格',
+                        data: [320, 380, 450, 500],
+                        backgroundColor: ['#e5e7eb','#e5e7eb','#e5e7eb','#ea580c'],
+                        borderRadius: 6
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {display:false} } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: {display:false} },
+                    scales: { y: { beginAtZero: false, min: 200 } }
+                }
             });
-        }
 
-        function initCostChart() {
-            const ctx = document.getElementById('costBreakdownChart').getContext('2d');
-            new Chart(ctx, {
+            // Cost Chart
+            const ctx2 = document.getElementById('costBreakdownChart').getContext('2d');
+            new Chart(ctx2, {
                 type: 'doughnut',
                 data: {
-                    labels: ['食材', '人力', '租金', '利潤'],
+                    labels: ['紅面鴨/老薑', '純米酒', '人力與炭火', '利潤'],
                     datasets: [{
-                        data: [45, 25, 15, 15],
-                        backgroundColor: ['#ea580c', '#fdba74', '#94a3b8', '#cbd5e1'],
+                        data: [40, 20, 25, 15],
+                        backgroundColor: ['#c2410c', '#ea580c', '#fb923c', '#fed7aa'],
                         borderWidth: 0
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, cutout: '60%' }
+                options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
             });
         }
 
-        // Calculator Logic
-        const inputs = ['potType', 'vegCount', 'drinkCount'];
-        inputs.forEach(id => {
-            document.getElementById(id).addEventListener('change', updateCalc);
-            document.getElementById(id).addEventListener('input', updateCalc);
-        });
+        function initCalculator() {
+            const inputs = ['potType', 'vegCount', 'peopleCount'];
+            const update = () => {
+                const pot = parseInt(document.getElementById('potType').value);
+                const veg = parseInt(document.getElementById('vegCount').value) * 50; // Assume 50 per plate
+                const people = parseInt(document.getElementById('peopleCount').value);
+                
+                const total = pot + veg;
+                const avg = Math.round(total / people);
 
-        function updateCalc() {
-            const pot = parseInt(document.getElementById('potType').value);
-            const veg = parseInt(document.getElementById('vegCount').value) * 50;
-            const drink = parseInt(document.getElementById('drinkCount').value) * 100;
-            const total = pot + veg + drink;
-            document.getElementById('totalPrice').innerText = total;
-            document.getElementById('avgPrice').innerText = `(若4人用餐，每人約 ${Math.round(total/4)} 元)`;
+                document.getElementById('totalPrice').innerText = total;
+                document.getElementById('avgPrice').innerText = avg;
+            };
+            
+            inputs.forEach(id => {
+                const el = document.getElementById(id);
+                el.addEventListener('change', update);
+                el.addEventListener('input', update);
+            });
+            update(); // Init
         }
     </script>
 </body>
 </html>
-
