@@ -145,14 +145,11 @@
                     </div>
                     <div class="mb-4">
                         <label class="block text-xs font-bold text-gray-500 mb-1">人數</label>
-                        <select id="editGuests" class="w-full border rounded p-2">
-                            <option value="2">2 位</option>
-                            <option value="3">3 位</option>
-                            <option value="4">4 位</option>
-                            <option value="5">5 位</option>
-                            <option value="6">6 位</option>
-                            <option value="7">7 位以上</option>
-                        </select>
+                        <!-- 修改處：改為 input type="number" -->
+                        <div class="flex items-center">
+                            <input type="number" id="editGuests" min="1" placeholder="輸入人數" class="w-full border rounded p-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            <span class="ml-2 text-gray-500 text-sm">位</span>
+                        </div>
                     </div>
                     <div class="mb-4">
                         <label class="block text-xs font-bold text-gray-500 mb-1">備註</label>
@@ -179,19 +176,31 @@
         // =================================================================
         // TODO: 請在此處貼上您的 Firebase Config (請務必替換)
         // =================================================================
-        const firebaseConfig = {
-            apiKey: "AIzaSyAYgc49iXduqsebhzgORrQlUZ-goW4U3kk",
-            authDomain: "ginger-duck-booking.firebaseapp.com",
-            projectId: "ginger-duck-booking",
-            storageBucket: "ginger-duck-booking.firebasestorage.app",
-            messagingSenderId: "944895605206",
-            appId: "1:944895605206:web:f2e006b9dcd0749a478c77",
-            measurementId: "G-72Z5CRG1RF"
-        };
+const firebaseConfig = {
+  apiKey: "AIzaSyAYgc49iXduqsebhzgORrQlUZ-goW4U3kk",
+  authDomain: "ginger-duck-booking.firebaseapp.com",
+  projectId: "ginger-duck-booking",
+  storageBucket: "ginger-duck-booking.firebasestorage.app",
+  messagingSenderId: "944895605206",
+  appId: "1:944895605206:web:f2e006b9dcd0749a478c77",
+  measurementId: "G-72Z5CRG1RF"
+};
 
         // Initialize Firebase
         let db;
         try {
+            // 自動檢查是否忘記設定
+            if (firebaseConfig.apiKey === "YOUR_API_KEY_HERE" || firebaseConfig.projectId === "YOUR_PROJECT_ID") {
+                Swal.fire({
+                    icon: 'error',
+                    title: '尚未設定 Firebase',
+                    html: '您忘記將 <b>firebaseConfig</b> 替換成您自己的設定了！<br>請打開程式碼，找到最下方的 script 區塊，填入您的金鑰。',
+                    allowOutsideClick: false,
+                    confirmButtonText: '我知道了'
+                });
+                throw new Error("Firebase config not set by user");
+            }
+
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
         } catch (e) {
@@ -272,8 +281,8 @@
                 console.error(error);
                 if(error.message.includes("index")) {
                     Swal.fire('系統提示', '請按 F12 開啟 Console 建立 Firebase Index', 'info');
-                } else {
-                    Swal.fire('錯誤', '載入資料失敗', 'error');
+                } else if (!error.message.includes("config not set")) {
+                    Swal.fire('錯誤', '載入資料失敗: ' + error.message, 'error');
                 }
             }
         };
