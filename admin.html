@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>訂位管理後台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f3f4f6; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- 1. 登入畫面 (簡易防護) -->
+    <div id="loginSection" class="min-h-screen flex items-center justify-center bg-gray-800">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-96">
+            <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">後台管理登入</h2>
+            <input type="password" id="adminPassword" placeholder="請輸入管理員密碼" 
+                   class="w-full p-3 border border-gray-300 rounded mb-4 focus:outline-none focus:border-orange-500">
+            <button onclick="checkLogin()" class="w-full bg-orange-600 text-white font-bold py-3 rounded hover:bg-orange-700 transition">
+                登入
+            </button>
+            <p class="text-xs text-gray-400 mt-4 text-center">預設密碼：admin123</p>
+        </div>
+    </div>
+
+    <!-- 2. 管理儀表板 (登入後顯示) -->
+    <div id="dashboardSection" class="hidden min-h-screen">
+        <!-- Header -->
+        <nav class="bg-white shadow mb-8">
+            <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+                <div class="flex items-center text-orange-600 font-bold text-xl">
+                    <i class="fa-solid fa-clipboard-list mr-2"></i> 訂位管理系統
+                </div>
+                <button onclick="logout()" class="text-gray-500 hover:text-red-500 text-sm">
+                    <i class="fa-solid fa-sign-out-alt"></i> 登出
+                </button>
+            </div>
+        </nav>
+
+        <!-- Content -->
+        <div class="max-w-7xl mx-auto px-4">
+            
+            <!-- 狀態卡片 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-lg shadow border-l-4 border-orange-500">
+                    <p class="text-gray-500 text-sm">總訂位數</p>
+                    <p class="text-3xl font-bold text-gray-800" id="totalCount">0</p>
+                </div>
+                <!-- 這裡可以擴充更多統計數據 -->
+            </div>
+
+            <!-- 工具列 -->
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-700">預約列表</h3>
+                <button onclick="loadReservations()" class="bg-white border border-gray-300 text-gray-600 px-4 py-2 rounded hover:bg-gray-50 transition">
+                    <i class="fa-solid fa-rotate-right mr-1"></i> 重新整理
+                </button>
+            </div>
+
+            <!-- 表格 -->
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full leading-normal">
+                        <thead>
+                            <tr>
+                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">日期/時間</th>
+                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">姓名/電話</th>
+                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">人數</th>
+                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">備註</th>
+                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reservationTableBody">
+                            <!-- 資料會由 JS 插入這裡 -->
+                            <tr>
+                                <td colspan="5" class="px-5 py-10 text-center text-gray-500">
+                                    <div class="flex justify-center items-center">
+                                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mr-2"></div>
+                                        載入資料中...
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // -----------------------------------------------------------
+        // 1. FIREBASE SETUP
+        // -----------------------------------------------------------
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, deleteDoc, doc, query, orderBy } 
+        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // =================================================================
+        // TODO: 請再次在此處貼上您的 Firebase Config
+        // =================================================================
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY_HERE",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        let db;
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+        } catch (e) {
+            console.error("Firebase 初始化失敗");
+        }
+
+        // -----------------------------------------------------------
+        // 2. 登入邏輯 (簡易版)
+        // -----------------------------------------------------------
+        const loginSection = document.getElementById('loginSection');
+        const dashboardSection = document.getElementById('dashboardSection');
+
+        window.checkLogin = function() {
+            const pwd = document.getElementById('adminPassword').value;
+            // 這裡設定簡易密碼，您可以自行修改字串
+            if (pwd === "admin123") {
+                loginSection.classList.add('hidden');
+                dashboardSection.classList.remove('hidden');
+                loadReservations(); // 登入成功後載入資料
+            } else {
+                alert("密碼錯誤！");
+            }
+        }
+
+        window.logout = function() {
+            location.reload();
+        }
+
+        // -----------------------------------------------------------
+        // 3. 資料載入邏輯
+        // -----------------------------------------------------------
+        window.loadReservations = async function() {
+            if (!db) return;
+            const tbody = document.getElementById('reservationTableBody');
+            const totalCountEl = document.getElementById('totalCount');
+            
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4">載入中...</td></tr>`;
+
+            try {
+                // 抓取 'reservations' 集合，並依照建立時間(createdAt) 倒序排列
+                // 注意：若第一次使用 orderBy 可能會在 Console 跳出建立索引(Index)的連結，需點擊建立
+                const q = query(collection(db, "reservations"), orderBy("date", "asc")); 
+                const querySnapshot = await getDocs(q);
+
+                let html = "";
+                let count = 0;
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    count++;
+                    
+                    // 組合 HTML
+                    html += `
+                        <tr class="hover:bg-gray-50 border-b border-gray-200">
+                            <td class="px-5 py-5 bg-white text-sm">
+                                <div class="flex items-center">
+                                    <div class="ml-3">
+                                        <p class="text-gray-900 font-bold whitespace-no-wrap">${data.date}</p>
+                                        <p class="text-gray-500 whitespace-no-wrap">${data.time}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-5 py-5 bg-white text-sm">
+                                <p class="text-gray-900 whitespace-no-wrap">${data.name}</p>
+                                <p class="text-gray-500 whitespace-no-wrap">${data.phone}</p>
+                            </td>
+                            <td class="px-5 py-5 bg-white text-sm">
+                                <span class="relative inline-block px-3 py-1 font-semibold text-orange-900 leading-tight">
+                                    <span aria-hidden class="absolute inset-0 bg-orange-200 opacity-50 rounded-full"></span>
+                                    <span class="relative">${data.guests} 位</span>
+                                </span>
+                            </td>
+                            <td class="px-5 py-5 bg-white text-sm">
+                                <p class="text-gray-900 whitespace-no-wrap">${data.note || '-'}</p>
+                            </td>
+                            <td class="px-5 py-5 bg-white text-sm">
+                                <button onclick="deleteReservation('${doc.id}')" class="text-red-600 hover:text-red-900 font-bold">
+                                    <i class="fa-solid fa-trash"></i> 刪除
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                if (count === 0) {
+                    html = `<tr><td colspan="5" class="text-center py-8 text-gray-500">目前沒有任何訂位資料</td></tr>`;
+                }
+
+                tbody.innerHTML = html;
+                totalCountEl.innerText = count;
+
+            } catch (error) {
+                console.error("Error:", error);
+                // 如果是因為還沒建立索引導致的錯誤，顯示提示
+                if (error.message.includes("index")) {
+                     alert("系統提示：請查看瀏覽器 Console (F12)，點擊連結建立 Firebase 索引，才能使用排序功能。");
+                } else {
+                     tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-500">載入失敗：${error.message}</td></tr>`;
+                }
+            }
+        }
+
+        // -----------------------------------------------------------
+        // 4. 刪除邏輯
+        // -----------------------------------------------------------
+        window.deleteReservation = async function(docId) {
+            if (!confirm("確定要刪除這筆訂位資料嗎？刪除後無法復原。")) return;
+
+            try {
+                await deleteDoc(doc(db, "reservations", docId));
+                alert("刪除成功！");
+                loadReservations(); // 重新載入列表
+            } catch (error) {
+                console.error("Error removing document: ", error);
+                alert("刪除失敗");
+            }
+        }
+    </script>
+</body>
+</html>
