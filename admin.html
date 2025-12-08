@@ -3,85 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>訂位管理後台</title>
+    <title>薑母鴨訂位中控台</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- SweetAlert2 for nicer alerts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #f3f4f6; }
         .hidden { display: none; }
+        /* Modal Transition */
+        .modal { transition: opacity 0.25s ease; }
     </style>
 </head>
-<body>
+<body class="bg-gray-100">
 
     <!-- 1. 登入畫面 -->
     <div id="loginSection" class="min-h-screen flex items-center justify-center bg-gray-800">
-        <div class="bg-white p-8 rounded-lg shadow-xl w-96">
-            <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">後台管理登入</h2>
-            <input type="password" id="adminPassword" placeholder="請輸入管理員密碼" 
-                   class="w-full p-3 border border-gray-300 rounded mb-4 focus:outline-none focus:border-orange-500">
-            <button onclick="checkLogin()" class="w-full bg-orange-600 text-white font-bold py-3 rounded hover:bg-orange-700 transition">
-                登入
+        <div class="bg-white p-8 rounded-lg shadow-2xl w-96 transform transition-all hover:scale-105">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-user-shield text-3xl text-orange-600"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800">管理員登入</h2>
+            </div>
+            <input type="password" id="adminPassword" placeholder="輸入密碼" 
+                   class="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
+                   onkeypress="handleLoginKeyPress(event)">
+            <button onclick="checkLogin()" class="w-full bg-orange-600 text-white font-bold py-3 rounded-lg hover:bg-orange-700 transition shadow-lg">
+                進入系統
             </button>
-            <p class="text-xs text-gray-400 mt-4 text-center">預設密碼：admin123</p>
         </div>
     </div>
 
     <!-- 2. 管理儀表板 -->
-    <div id="dashboardSection" class="hidden min-h-screen">
-        <!-- Header -->
-        <nav class="bg-white shadow mb-8">
-            <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-                <div class="flex items-center text-orange-600 font-bold text-xl">
-                    <i class="fa-solid fa-clipboard-list mr-2"></i> 訂位管理系統
+    <div id="dashboardSection" class="hidden min-h-screen pb-10">
+        <!-- Navbar -->
+        <nav class="bg-white shadow-md sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+                <div class="flex items-center text-orange-600 font-bold text-xl tracking-wide">
+                    <i class="fa-solid fa-fire-burner mr-2"></i> 薑母鴨訂位中控
                 </div>
-                <button onclick="logout()" class="text-gray-500 hover:text-red-500 text-sm">
-                    <i class="fa-solid fa-sign-out-alt"></i> 登出
-                </button>
+                <div class="flex items-center space-x-4">
+                    <span id="currentTime" class="text-gray-400 text-sm hidden md:inline-block"></span>
+                    <button onclick="logout()" class="text-gray-500 hover:text-red-500 text-sm font-medium transition">
+                        <i class="fa-solid fa-right-from-bracket"></i> 登出
+                    </button>
+                </div>
             </div>
         </nav>
 
-        <!-- Content -->
-        <div class="max-w-7xl mx-auto px-4">
+        <!-- Main Content -->
+        <div class="max-w-7xl mx-auto px-4 mt-8">
             
-            <!-- 狀態與工具列 -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="bg-white p-6 rounded-lg shadow border-l-4 border-orange-500">
-                    <p class="text-gray-500 text-sm">總訂位數</p>
-                    <p class="text-3xl font-bold text-gray-800" id="totalCount">0</p>
+            <!-- 數據概覽卡片 -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-blue-500">
+                    <p class="text-gray-400 text-xs uppercase font-bold">總訂單數</p>
+                    <p class="text-2xl font-bold text-gray-800" id="statTotalOrders">0</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-orange-500">
+                    <p class="text-gray-400 text-xs uppercase font-bold">今日訂位</p>
+                    <p class="text-2xl font-bold text-orange-600" id="statTodayOrders">0</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-green-500">
+                    <p class="text-gray-400 text-xs uppercase font-bold">今日總客數</p>
+                    <p class="text-2xl font-bold text-green-600" id="statTodayGuests">0</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-purple-500">
+                    <p class="text-gray-400 text-xs uppercase font-bold">已報到率</p>
+                    <p class="text-2xl font-bold text-purple-600" id="statCheckInRate">0%</p>
                 </div>
             </div>
 
-            <!-- 按鈕區 -->
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-gray-700">預約列表</h3>
-                <div>
-                    <!-- 新增：匯出 CSV 按鈕 -->
-                    <button onclick="exportCSV()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition mr-2 shadow">
-                        <i class="fa-solid fa-file-csv mr-1"></i> 匯出 CSV
+            <!-- 工具列 (搜尋與篩選) -->
+            <div class="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <div class="flex w-full md:w-auto space-x-2">
+                    <div class="relative w-full md:w-64">
+                        <input type="text" id="searchInput" placeholder="搜尋姓名或電話..." onkeyup="filterData()"
+                            class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition text-sm">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                    <button onclick="toggleTodayFilter()" id="todayBtn" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-orange-100 hover:text-orange-600 transition flex items-center">
+                        <i class="fa-regular fa-calendar-check mr-2"></i> 只看今天
                     </button>
-                    
-                    <button onclick="loadReservations()" class="bg-white border border-gray-300 text-gray-600 px-4 py-2 rounded hover:bg-gray-50 transition shadow">
-                        <i class="fa-solid fa-rotate-right mr-1"></i> 重新整理
+                </div>
+                
+                <div class="flex space-x-2 w-full md:w-auto justify-end">
+                    <button onclick="exportCSV()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition shadow text-sm font-medium flex items-center">
+                        <i class="fa-solid fa-file-csv mr-2"></i> 匯出
+                    </button>
+                    <button onclick="fetchData()" class="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-900 transition shadow text-sm font-medium flex items-center">
+                        <i class="fa-solid fa-rotate mr-2"></i> 刷新
                     </button>
                 </div>
             </div>
 
-            <!-- 表格 -->
-            <div class="bg-white shadow rounded-lg overflow-hidden">
+            <!-- 預約列表表格 -->
+            <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
                 <div class="overflow-x-auto">
                     <table class="min-w-full leading-normal">
                         <thead>
-                            <tr>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">日期/時間</th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">姓名/電話</th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">人數</th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">備註</th>
-                                <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">操作</th>
+                            <tr class="bg-gray-50 border-b border-gray-200">
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">狀態</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">日期/時間</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">客戶資料</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">人數</th>
+                                <th class="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">備註</th>
+                                <th class="px-5 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">操作</th>
                             </tr>
                         </thead>
-                        <tbody id="reservationTableBody">
-                            <tr><td colspan="5" class="px-5 py-10 text-center text-gray-500">載入中...</td></tr>
+                        <tbody id="tableBody">
+                            <!-- JS 生成內容 -->
                         </tbody>
                     </table>
                 </div>
@@ -89,13 +122,62 @@
         </div>
     </div>
 
+    <!-- 3. 編輯視窗 (Modal) -->
+    <div id="editModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="closeEditModal()"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4" id="modal-title">
+                        <i class="fa-solid fa-pen-to-square text-orange-600 mr-2"></i>修改訂位資訊
+                    </h3>
+                    <input type="hidden" id="editDocId">
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">日期</label>
+                            <input type="date" id="editDate" class="w-full border rounded p-2">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">時間</label>
+                            <input type="time" id="editTime" class="w-full border rounded p-2">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-gray-500 mb-1">人數</label>
+                        <select id="editGuests" class="w-full border rounded p-2">
+                            <option value="2">2 位</option>
+                            <option value="3">3 位</option>
+                            <option value="4">4 位</option>
+                            <option value="5">5 位</option>
+                            <option value="6">6 位</option>
+                            <option value="7">7 位以上</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-gray-500 mb-1">備註</label>
+                        <textarea id="editNote" rows="3" class="w-full border rounded p-2"></textarea>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" onclick="saveEdit()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-orange-600 text-base font-medium text-white hover:bg-orange-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        儲存變更
+                    </button>
+                    <button type="button" onclick="closeEditModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        取消
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, deleteDoc, doc, query, orderBy } 
+        import { getFirestore, collection, getDocs, deleteDoc, updateDoc, doc, query, orderBy } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // =================================================================
-        // TODO: 請在此處貼上您的 Firebase Config (跟 index.html 一樣)
+        // TODO: 請在此處貼上您的 Firebase Config (請務必替換)
         // =================================================================
         const firebaseConfig = {
             apiKey: "AIzaSyAYgc49iXduqsebhzgORrQlUZ-goW4U3kk",
@@ -107,149 +189,331 @@
             measurementId: "G-72Z5CRG1RF"
         };
 
+        // Initialize Firebase
         let db;
         try {
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
         } catch (e) {
-            console.error("Firebase 初始化失敗");
+            console.error("Firebase Init Error", e);
         }
 
-        // --- 登入邏輯 ---
+        // Global Data Storage
+        let allReservations = []; // 儲存所有下載的資料，供前端篩選使用
+        let isTodayFilterActive = false;
+
+        // -----------------------------------------------------------
+        // 1. 登入與持久化邏輯
+        // -----------------------------------------------------------
         const loginSection = document.getElementById('loginSection');
         const dashboardSection = document.getElementById('dashboardSection');
+
+        // 頁面載入時檢查是否已登入
+        window.onload = function() {
+            const isLoggedIn = localStorage.getItem('adminLoggedIn');
+            if (isLoggedIn === 'true') {
+                showDashboard();
+            } else {
+                loginSection.classList.remove('hidden');
+            }
+            // 顯示即時時間
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById('currentTime').innerText = now.toLocaleString('zh-TW', {hour12: false, hour:'2-digit', minute:'2-digit'});
+            }, 1000);
+        };
+
+        window.handleLoginKeyPress = function(e) {
+            if (e.key === 'Enter') checkLogin();
+        }
 
         window.checkLogin = function() {
             const pwd = document.getElementById('adminPassword').value;
             if (pwd === "admin123") {
-                loginSection.classList.add('hidden');
-                dashboardSection.classList.remove('hidden');
-                loadReservations(); 
+                localStorage.setItem('adminLoggedIn', 'true'); // 儲存登入狀態
+                showDashboard();
             } else {
-                alert("密碼錯誤！");
+                Swal.fire({ icon: 'error', title: '密碼錯誤', text: '請重新輸入' });
             }
-        }
+        };
 
         window.logout = function() {
+            localStorage.removeItem('adminLoggedIn');
             location.reload();
+        };
+
+        function showDashboard() {
+            loginSection.classList.add('hidden');
+            dashboardSection.classList.remove('hidden');
+            fetchData();
         }
 
-        // --- 資料載入 ---
-        window.loadReservations = async function() {
+        // -----------------------------------------------------------
+        // 2. 資料獲取與渲染
+        // -----------------------------------------------------------
+        window.fetchData = async function() {
             if (!db) return;
-            const tbody = document.getElementById('reservationTableBody');
-            const totalCountEl = document.getElementById('totalCount');
-            
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4"><div class="animate-spin inline-block w-6 h-6 border-2 border-orange-500 rounded-full border-t-transparent"></div> 載入中...</td></tr>`;
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10"><i class="fa-solid fa-circle-notch fa-spin text-orange-500 text-2xl"></i><br>資料載入中...</td></tr>`;
 
             try {
-                const q = query(collection(db, "reservations"), orderBy("date", "asc")); 
+                // 預設抓取全部，前端做篩選
+                const q = query(collection(db, "reservations"), orderBy("date", "asc"));
                 const querySnapshot = await getDocs(q);
-
-                let html = "";
-                let count = 0;
-
+                
+                allReservations = [];
                 querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    count++;
-                    html += `
-                        <tr class="hover:bg-gray-50 border-b border-gray-200">
-                            <td class="px-5 py-5 bg-white text-sm">
-                                <div><p class="font-bold text-gray-900">${data.date}</p><p class="text-gray-500">${data.time}</p></div>
-                            </td>
-                            <td class="px-5 py-5 bg-white text-sm">
-                                <div><p class="text-gray-900">${data.name}</p><p class="text-gray-500">${data.phone}</p></div>
-                            </td>
-                            <td class="px-5 py-5 bg-white text-sm">
-                                <span class="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-semibold">${data.guests} 位</span>
-                            </td>
-                            <td class="px-5 py-5 bg-white text-sm text-gray-600">${data.note || '-'}</td>
-                            <td class="px-5 py-5 bg-white text-sm">
-                                <button onclick="deleteReservation('${doc.id}')" class="text-red-600 hover:text-red-900 font-bold text-xs border border-red-200 px-2 py-1 rounded">刪除</button>
-                            </td>
-                        </tr>
-                    `;
+                    allReservations.push({ id: doc.id, ...doc.data() });
                 });
 
-                if (count === 0) html = `<tr><td colspan="5" class="text-center py-8 text-gray-500">尚無資料</td></tr>`;
-                
-                tbody.innerHTML = html;
-                totalCountEl.innerText = count;
+                filterData(); // 呼叫篩選與渲染
 
             } catch (error) {
-                console.error("Error:", error);
-                if (error.message.includes("index")) {
-                     alert("請按 F12 打開 Console 建立 Firebase 索引。");
+                console.error(error);
+                if(error.message.includes("index")) {
+                    Swal.fire('系統提示', '請按 F12 開啟 Console 建立 Firebase Index', 'info');
                 } else {
-                     tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-500">載入失敗</td></tr>`;
+                    Swal.fire('錯誤', '載入資料失敗', 'error');
                 }
             }
-        }
+        };
 
-        // --- 刪除功能 ---
-        window.deleteReservation = async function(docId) {
-            if (!confirm("確定要刪除此訂單嗎？")) return;
-            try {
-                await deleteDoc(doc(db, "reservations", docId));
-                loadReservations();
-            } catch (error) {
-                alert("刪除失敗");
+        window.filterData = function() {
+            const searchVal = document.getElementById('searchInput').value.toLowerCase();
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            // 篩選邏輯
+            let filtered = allReservations.filter(item => {
+                const matchSearch = (item.name && item.name.toLowerCase().includes(searchVal)) || 
+                                    (item.phone && item.phone.includes(searchVal));
+                
+                const matchDate = isTodayFilterActive ? (item.date === todayStr) : true;
+
+                return matchSearch && matchDate;
+            });
+
+            updateStats(filtered);
+            renderTable(filtered);
+        };
+
+        window.toggleTodayFilter = function() {
+            isTodayFilterActive = !isTodayFilterActive;
+            const btn = document.getElementById('todayBtn');
+            if (isTodayFilterActive) {
+                btn.classList.remove('bg-gray-100', 'text-gray-600');
+                btn.classList.add('bg-orange-100', 'text-orange-600', 'border', 'border-orange-200');
+            } else {
+                btn.classList.add('bg-gray-100', 'text-gray-600');
+                btn.classList.remove('bg-orange-100', 'text-orange-600', 'border', 'border-orange-200');
             }
-        }
+            filterData();
+        };
 
-        // --- CSV 匯出功能 (新功能) ---
-        window.exportCSV = async function() {
-            if (!db) return;
-            
-            // 1. 重新抓取最新資料以確保匯出的是最新的
-            const q = query(collection(db, "reservations"), orderBy("date", "asc"));
-            const querySnapshot = await getDocs(q);
-            
-            if (querySnapshot.empty) {
-                alert("目前沒有資料可以匯出！");
+        function renderTable(data) {
+            const tbody = document.getElementById('tableBody');
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-400">沒有符合的訂位資料</td></tr>`;
                 return;
             }
 
-            // 2. 準備 CSV 內容
-            // \uFEFF 是 BOM (Byte Order Mark)，讓 Excel 知道這是 UTF-8 編碼，才不會顯示亂碼
-            let csvContent = "\uFEFF"; 
-            
-            // 標題列
-            csvContent += "日期,時間,姓名,電話,人數,備註\n";
+            let html = "";
+            data.forEach(item => {
+                // 狀態判斷 (若資料庫無 status 欄位則預設為 pending)
+                const isCheckedIn = item.status === 'seated';
+                const statusBadge = isCheckedIn 
+                    ? `<span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">已報到</span>`
+                    : `<span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">未報到</span>`;
 
-            querySnapshot.forEach((doc) => {
-                const d = doc.data();
-                // 為了避免內容中有逗號導致欄位錯亂，我們把每個欄位都用雙引號包起來
-                // 如果備註裡有雙引號，要換成兩個雙引號 (Excel 規則)
+                html += `
+                    <tr class="hover:bg-gray-50 border-b border-gray-100 transition duration-150">
+                        <td class="px-5 py-4 whitespace-no-wrap cursor-pointer" onclick="toggleStatus('${item.id}', '${item.status}')">
+                            ${statusBadge}
+                        </td>
+                        <td class="px-5 py-4 whitespace-no-wrap">
+                            <div class="text-sm font-bold text-gray-900">${item.date}</div>
+                            <div class="text-sm text-gray-500">${item.time}</div>
+                        </td>
+                        <td class="px-5 py-4 whitespace-no-wrap">
+                            <div class="text-sm font-medium text-gray-900">${item.name}</div>
+                            <div class="text-sm text-gray-500"><i class="fa-solid fa-phone text-xs mr-1"></i>${item.phone}</div>
+                        </td>
+                        <td class="px-5 py-4 whitespace-no-wrap text-sm text-gray-700 font-bold">
+                            ${item.guests} 位
+                        </td>
+                        <td class="px-5 py-4 whitespace-no-wrap text-sm text-gray-500 max-w-xs truncate">
+                            ${item.note || '-'}
+                        </td>
+                        <td class="px-5 py-4 whitespace-no-wrap text-right text-sm font-medium">
+                            <button onclick="openEditModal('${item.id}')" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 p-2 rounded mr-2 transition">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="deleteReservation('${item.id}')" class="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-2 rounded transition">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function updateStats(data) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            
+            // 總訂單 (當前篩選下的)
+            document.getElementById('statTotalOrders').innerText = data.length;
+
+            // 今日訂單 (從全資料中算)
+            const todayOrders = allReservations.filter(x => x.date === todayStr);
+            document.getElementById('statTodayOrders').innerText = todayOrders.length;
+
+            // 今日總客數
+            const todayGuests = todayOrders.reduce((sum, item) => sum + parseInt(item.guests || 0), 0);
+            document.getElementById('statTodayGuests').innerText = todayGuests;
+            
+            // 報到率
+            if (todayOrders.length > 0) {
+                const seatedCount = todayOrders.filter(x => x.status === 'seated').length;
+                const rate = Math.round((seatedCount / todayOrders.length) * 100);
+                document.getElementById('statCheckInRate').innerText = rate + "%";
+            } else {
+                document.getElementById('statCheckInRate').innerText = "0%";
+            }
+        }
+
+        // -----------------------------------------------------------
+        // 3. 互動功能 (狀態/編輯/刪除/匯出)
+        // -----------------------------------------------------------
+
+        // 切換報到狀態
+        window.toggleStatus = async function(id, currentStatus) {
+            const newStatus = (currentStatus === 'seated') ? 'pending' : 'seated';
+            // 樂觀更新 (先改前端陣列顯示，再送後端)
+            const idx = allReservations.findIndex(x => x.id === id);
+            if(idx > -1) allReservations[idx].status = newStatus;
+            filterData(); // 重新渲染
+
+            try {
+                const docRef = doc(db, "reservations", id);
+                await updateDoc(docRef, { status: newStatus });
+            } catch (e) {
+                console.error("Update failed", e);
+                Swal.fire('錯誤', '狀態更新失敗', 'error');
+            }
+        };
+
+        // 編輯 Modal
+        window.openEditModal = function(id) {
+            const item = allReservations.find(x => x.id === id);
+            if (!item) return;
+
+            document.getElementById('editDocId').value = id;
+            document.getElementById('editDate').value = item.date;
+            document.getElementById('editTime').value = item.time;
+            document.getElementById('editGuests').value = item.guests;
+            document.getElementById('editNote').value = item.note || '';
+
+            document.getElementById('editModal').classList.remove('hidden');
+        };
+
+        window.closeEditModal = function() {
+            document.getElementById('editModal').classList.add('hidden');
+        };
+
+        window.saveEdit = async function() {
+            const id = document.getElementById('editDocId').value;
+            const newData = {
+                date: document.getElementById('editDate').value,
+                time: document.getElementById('editTime').value,
+                guests: document.getElementById('editGuests').value,
+                note: document.getElementById('editNote').value
+            };
+
+            try {
+                await updateDoc(doc(db, "reservations", id), newData);
+                
+                // 更新本地資料與畫面
+                const idx = allReservations.findIndex(x => x.id === id);
+                if (idx > -1) {
+                    allReservations[idx] = { ...allReservations[idx], ...newData };
+                }
+                
+                closeEditModal();
+                filterData();
+                Swal.fire({ icon: 'success', title: '修改成功', timer: 1500, showConfirmButton: false });
+
+            } catch (e) {
+                Swal.fire('錯誤', '修改失敗', 'error');
+            }
+        };
+
+        // 刪除
+        window.deleteReservation = function(id) {
+            Swal.fire({
+                title: '確定刪除?',
+                text: "這筆資料將無法復原!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: '是的，刪除它!',
+                cancelButtonText: '取消'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        await deleteDoc(doc(db, "reservations", id));
+                        allReservations = allReservations.filter(x => x.id !== id);
+                        filterData();
+                        Swal.fire('已刪除!', '該筆訂位已被移除。', 'success');
+                    } catch (e) {
+                        Swal.fire('錯誤', '刪除失敗', 'error');
+                    }
+                }
+            });
+        };
+
+        // CSV 匯出 (沿用之前的邏輯，但支援篩選後的資料)
+        window.exportCSV = function() {
+            // 只匯出目前篩選出來的資料 (filtered data)
+            // 由於 filterData 更新了畫面，我們重新跑一次篩選來拿資料，或直接用全資料
+            // 這裡選擇匯出「當前搜尋結果」
+            const searchVal = document.getElementById('searchInput').value.toLowerCase();
+            const todayStr = new Date().toISOString().split('T')[0];
+            let dataToExport = allReservations.filter(item => {
+                const matchSearch = (item.name && item.name.toLowerCase().includes(searchVal)) || 
+                                    (item.phone && item.phone.includes(searchVal));
+                const matchDate = isTodayFilterActive ? (item.date === todayStr) : true;
+                return matchSearch && matchDate;
+            });
+
+            if (dataToExport.length === 0) {
+                Swal.fire('提示', '目前沒有資料可匯出', 'info');
+                return;
+            }
+
+            let csvContent = "\uFEFF"; 
+            csvContent += "狀態,日期,時間,姓名,電話,人數,備註\n";
+
+            dataToExport.forEach((d) => {
+                const statusStr = (d.status === 'seated') ? '已報到' : '未報到';
                 const safeNote = (d.note || "").replace(/"/g, '""');
-                
                 const row = [
-                    `"${d.date}"`,
-                    `"${d.time}"`,
-                    `"${d.name}"`,
-                    `"${d.phone}"`,
-                    `"${d.guests}"`,
-                    `"${safeNote}"`
+                    `"${statusStr}"`, `"${d.date}"`, `"${d.time}"`, `"${d.name}"`, 
+                    `"${d.phone}"`, `"${d.guests}"`, `"${safeNote}"`
                 ];
-                
                 csvContent += row.join(",") + "\n";
             });
 
-            // 3. 觸發下載
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
-            
-            // 設定檔名：訂位資料_2023-12-08.csv
             const today = new Date().toISOString().split('T')[0];
             link.setAttribute("href", url);
-            link.setAttribute("download", `訂位資料_${today}.csv`);
-            
+            link.setAttribute("download", `訂位報表_${today}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-        }
-
+        };
     </script>
 </body>
 </html>
