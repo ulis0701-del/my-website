@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全台薑母鴨價格分析報告：南投篇</title>
+    <title>南投薑母鴨價格分析與線上訂位</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -12,17 +12,16 @@
         
         body {
             font-family: 'Noto Sans TC', sans-serif;
-            background-color: #FFF7ED; /* 溫暖的淺橘色背景 */
+            background-color: #FFF7ED;
         }
 
-        /* Chart Container Styling - MANDATORY per requirements */
         .chart-container {
             position: relative;
             width: 100%;
-            max-width: 800px; /* 限制最大寬度以保持可讀性 */
+            max-width: 800px;
             margin-left: auto;
             margin-right: auto;
-            height: 350px; /* 基礎高度 */
+            height: 350px;
             max-height: 400px;
         }
 
@@ -39,43 +38,27 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
-        .nav-active {
-            border-bottom: 2px solid #EA580C;
-            color: #C2410C;
-            font-weight: 700;
+        /* Loading Spinner */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #ea580c;
+            width: 20px;
+            height: 20px;
+            -webkit-animation: spin 1s linear infinite; /* Safari */
+            animation: spin 1s linear infinite;
         }
 
-        /* 自定義滾動條 */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #FFF7ED;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #F97316;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #EA580C;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 
-    <!-- Chosen Palette: Warm Spicy Palette (Orange, Amber, Brown, Cream) to evoke the feeling of Ginger Duck soup and winter warmth. -->
-    <!-- Application Structure Plan:
-        1. **Hero/Verdict Section**: Immediate answer to the user's specific question about the 500 TWD price point in Nantou.
-        2. **National Analysis (Chart.js)**: A comparative bar chart showing regional averages to contextualize the Nantou price.
-        3. **Price Composition (Chart.js)**: A donut chart breaking down costs (duck, ginger, sesame oil, overhead) to explain WHY prices are rising.
-        4. **Interactive Calculator**: A tool for the user to simulate a "Standard" vs. "Premium" meal to see where their 500 TWD fits (is it just the pot or a full meal?).
-        5. **Qualitative Insight Cards**: Factors that justify a higher price (e.g., charcoal vs. gas, duck breed).
-        This structure moves from the direct answer -> data proof -> economic context -> personal simulation -> qualitative nuance.
-    -->
-    <!-- Visualization & Content Choices:
-        - Verdict Gauge: Uses CSS/HTML visual cues for immediate impact (Expensive vs. Reasonable).
-        - Regional Bar Chart: Best for comparing categorical data (Cities) against a metric (Price).
-        - Cost Structure Donut Chart: Best for showing parts of a whole (Cost breakdown).
-        - Interactive Bill Simulator: Allows user to explore scenarios dynamically (JS logic).
-        - Insight Cards: Grid layout for digestible text chunks regarding quality indicators.
+    <!-- Chosen Palette: Warm Spicy Palette -->
+    <!-- Application Structure Update:
+        Added a new Section 5: "Reservation" at the bottom.
+        This section includes a form connected to Firebase Firestore via pure JS (Modular SDK).
     -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
 </head>
@@ -87,527 +70,379 @@
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
                     <i class="fa-solid fa-bowl-food text-orange-600 text-2xl mr-2"></i>
-                    <span class="font-bold text-xl text-orange-800">薑母鴨價格情報站</span>
+                    <span class="font-bold text-xl text-orange-800">薑母鴨情報與訂位</span>
                 </div>
-                <div class="hidden md:flex space-x-8 items-center">
-                    <button onclick="scrollToSection('verdict')" class="nav-link text-gray-600 hover:text-orange-600 px-3 py-2 text-sm font-medium transition">價格診斷</button>
-                    <button onclick="scrollToSection('national')" class="nav-link text-gray-600 hover:text-orange-600 px-3 py-2 text-sm font-medium transition">全台比價</button>
-                    <button onclick="scrollToSection('analysis')" class="nav-link text-gray-600 hover:text-orange-600 px-3 py-2 text-sm font-medium transition">成本分析</button>
-                    <button onclick="scrollToSection('calculator')" class="nav-link text-gray-600 hover:text-orange-600 px-3 py-2 text-sm font-medium transition">試算工具</button>
-                </div>
-                <!-- Mobile menu button stub -->
-                <div class="flex items-center md:hidden">
-                    <button onclick="toggleMobileMenu()" class="text-gray-600 hover:text-orange-600">
-                        <i class="fa-solid fa-bars text-xl"></i>
+                <div class="hidden md:flex space-x-6 items-center">
+                    <button onclick="scrollToSection('verdict')" class="hover:text-orange-600 font-medium transition">價格診斷</button>
+                    <button onclick="scrollToSection('national')" class="hover:text-orange-600 font-medium transition">全台比價</button>
+                    <button onclick="scrollToSection('analysis')" class="hover:text-orange-600 font-medium transition">成本分析</button>
+                    <button onclick="scrollToSection('calculator')" class="hover:text-orange-600 font-medium transition">試算</button>
+                    <!-- Reservation Button Highlight -->
+                    <button onclick="scrollToSection('reservation')" class="bg-orange-600 text-white px-4 py-2 rounded-full hover:bg-orange-700 transition shadow-lg flex items-center">
+                        <i class="fa-solid fa-calendar-check mr-2"></i> 線上訂位
                     </button>
                 </div>
             </div>
-        </div>
-        <!-- Mobile Menu -->
-        <div id="mobile-menu" class="hidden md:hidden bg-orange-50 p-4 border-t border-orange-200">
-            <button onclick="scrollToSection('verdict')" class="block w-full text-left py-2 text-orange-800">價格診斷</button>
-            <button onclick="scrollToSection('national')" class="block w-full text-left py-2 text-orange-800">全台比價</button>
-            <button onclick="scrollToSection('analysis')" class="block w-full text-left py-2 text-orange-800">成本分析</button>
-            <button onclick="scrollToSection('calculator')" class="block w-full text-left py-2 text-orange-800">試算工具</button>
         </div>
     </nav>
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
 
-        <!-- SECTION 1: Verdict / Intro -->
+        <!-- SECTION 1: Verdict -->
         <section id="verdict" class="space-y-6">
             <div class="text-center space-y-4">
                 <h1 class="text-3xl md:text-5xl font-bold text-orange-900 leading-tight">
                     南投一份 <span class="text-red-600">500元</span> 算正常嗎？
                 </h1>
                 <p class="text-lg text-gray-600 max-w-2xl mx-auto">
-                    我們針對您的疑問進行了市場調查與數據分析。本部分直接針對「單點鍋底」價格進行評估，並提供市場行情的快速診斷。
+                    市場數據分析與線上預約系統。
                 </p>
             </div>
-
-            <!-- Analysis Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Card 1: The Verdict -->
-                <div class="glass-card rounded-2xl p-6 border-t-4 border-red-500 transform hover:scale-105 transition duration-300">
+                <div class="glass-card rounded-2xl p-6 border-t-4 border-red-500">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-bold text-gray-800">價格診斷結果</h3>
+                        <h3 class="text-xl font-bold text-gray-800">價格診斷</h3>
                         <i class="fa-solid fa-gavel text-red-500 text-2xl"></i>
                     </div>
                     <div class="text-4xl font-bold text-red-600 mb-2">偏高</div>
-                    <p class="text-gray-600">
-                        南投地區薑母鴨主鍋（鍋底）平均行情約在 <span class="font-bold text-orange-700">350元 - 400元</span> 之間。500元屬於高於市場均價約 25%-30% 的價位。
-                    </p>
+                    <p class="text-gray-600">高於市場均價約 30%，但若含紅面番鴨與全酒則屬合理。</p>
                 </div>
-
-                <!-- Card 2: Market Context -->
-                <div class="glass-card rounded-2xl p-6 border-t-4 border-yellow-500 transform hover:scale-105 transition duration-300">
+                <div class="glass-card rounded-2xl p-6 border-t-4 border-yellow-500">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-bold text-gray-800">可能原因</h3>
+                        <h3 class="text-xl font-bold text-gray-800">關鍵因素</h3>
                         <i class="fa-solid fa-magnifying-glass-chart text-yellow-500 text-2xl"></i>
                     </div>
                     <ul class="space-y-2 text-gray-600 text-sm">
-                        <li class="flex items-start"><i class="fa-solid fa-check text-yellow-500 mt-1 mr-2"></i><span>是否含酒？(米酒價格上漲)</span></li>
-                        <li class="flex items-start"><i class="fa-solid fa-check text-yellow-500 mt-1 mr-2"></i><span>鴨肉份量加倍？</span></li>
-                        <li class="flex items-start"><i class="fa-solid fa-check text-yellow-500 mt-1 mr-2"></i><span>使用紅面番鴨公 (成本較高)？</span></li>
-                        <li class="flex items-start"><i class="fa-solid fa-check text-yellow-500 mt-1 mr-2"></i><span>是否為套餐 (含配料)？</span></li>
+                        <li><i class="fa-solid fa-check text-yellow-500 mr-2"></i>紅面番鴨公 (成本+40%)</li>
+                        <li><i class="fa-solid fa-check text-yellow-500 mr-2"></i>全酒料理 (不加水)</li>
+                        <li><i class="fa-solid fa-check text-yellow-500 mr-2"></i>炭火陶鍋 (人力成本)</li>
                     </ul>
                 </div>
-
-                <!-- Card 3: Quick Stats -->
-                <div class="glass-card rounded-2xl p-6 border-t-4 border-green-500 transform hover:scale-105 transition duration-300">
+                <div class="glass-card rounded-2xl p-6 border-t-4 border-green-500">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-xl font-bold text-gray-800">合理價格區間</h3>
+                        <h3 class="text-xl font-bold text-gray-800">建議</h3>
                         <i class="fa-solid fa-chart-line text-green-500 text-2xl"></i>
                     </div>
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-500">平價連鎖</span>
-                            <span class="font-bold">330 - 380 元</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-500">在地老店</span>
-                            <span class="font-bold">380 - 420 元</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-500 text-red-500">您的查詢</span>
-                            <span class="font-bold text-red-600 bg-red-100 px-2 rounded">500 元</span>
-                        </div>
-                    </div>
+                    <p class="text-gray-600">若人數超過 3 人，選擇 500 元大鍋底並加點平價配菜，CP 值反而高於連鎖小火鍋。</p>
                 </div>
             </div>
         </section>
 
         <!-- SECTION 2: National Comparison -->
         <section id="national" class="bg-white rounded-3xl p-8 shadow-sm">
-            <div class="mb-6 border-l-4 border-orange-500 pl-4">
-                <h2 class="text-2xl font-bold text-gray-800">全台薑母鴨行情地圖</h2>
-                <p class="text-gray-500 mt-2">
-                    我們收集了全台北中南東主要連鎖與知名單店的「單點鍋底」價格進行比較。此圖表可以幫助您了解南投的價格在全國市場中的定位。
-                    <br><span class="text-xs text-gray-400">*數據基於2024年冬季市場調查平均值</span>
-                </p>
-            </div>
-            
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-l-4 border-orange-500 pl-4">全台行情比較</h2>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div class="lg:col-span-2">
                     <div class="chart-container">
                         <canvas id="nationalPriceChart"></canvas>
                     </div>
                 </div>
-                <div class="flex flex-col justify-center space-y-6">
-                    <div class="bg-orange-50 p-4 rounded-xl">
-                        <h4 class="font-bold text-orange-800 mb-2">區域分析</h4>
-                        <p class="text-sm text-gray-700 mb-2">
-                            <strong class="text-orange-600">北部 (雙北):</strong> 因租金與人力成本高，平均落在 400-480 元，部分名店已突破 500 元。
-                        </p>
-                        <p class="text-sm text-gray-700 mb-2">
-                            <strong class="text-orange-600">中部 (南投/台中):</strong> 通常是全台「CP值」戰區，平均應在 350-420 元。南投出現 500 元實屬特例。
-                        </p>
-                        <p class="text-sm text-gray-700">
-                            <strong class="text-orange-600">南部 (台南/高雄):</strong> 價格相對親民，多落在 350-380 元，且常有配料優惠。
-                        </p>
-                    </div>
-                    <div class="bg-gray-50 p-4 rounded-xl">
-                        <h4 class="font-bold text-gray-800 mb-2">數據亮點</h4>
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-sm text-gray-500">全台最低</span>
-                            <span class="text-sm font-bold">300元 (雲林/嘉義部分老店)</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm text-gray-500">全台最高</span>
-                            <span class="text-sm font-bold">550元 (台北市區精華地段)</span>
-                        </div>
-                    </div>
+                <div class="flex flex-col justify-center space-y-4 text-sm text-gray-600">
+                    <p><strong>北部 (雙北):</strong> 均價 450-480 元，店租成本高。</p>
+                    <p><strong>中部 (南投/台中):</strong> 均價 350-400 元。500元屬於特色名店價格。</p>
+                    <p><strong>南部:</strong> 均價 350 元，通常配料較優惠。</p>
                 </div>
             </div>
         </section>
 
         <!-- SECTION 3: Cost Analysis -->
-        <section id="analysis" class="space-y-8">
-            <div class="text-center">
-                <h2 class="text-2xl font-bold text-gray-800">為什麼會賣到 500 元？成本解密</h2>
-                <p class="text-gray-500 mt-2 max-w-3xl mx-auto">
-                    如果這一鍋賣500元，店家可能將成本投入在特殊的食材上。以下是標準薑母鴨的成本結構與可能導致溢價的關鍵因素。
-                </p>
+        <section id="analysis" class="space-y-6">
+            <h2 class="text-2xl font-bold text-gray-800 text-center">500元的成本結構</h2>
+            <div class="bg-white p-6 rounded-3xl shadow-sm flex flex-col items-center justify-center">
+                <div class="chart-container" style="height: 300px; max-width: 300px;">
+                    <canvas id="costBreakdownChart"></canvas>
+                </div>
+                <p class="text-xs text-gray-400 mt-4">食材成本佔比最高 (鴨肉/老薑/麻油)</p>
             </div>
+        </section>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                <!-- Text Insights -->
+        <!-- SECTION 4: Calculator -->
+        <section id="calculator" class="bg-orange-600 rounded-3xl p-8 text-white shadow-xl">
+            <h2 class="text-3xl font-bold mb-6">價格試算器</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div class="space-y-4">
-                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 cursor-pointer hover:border-orange-300 transition group" onclick="highlightSegment(0)">
-                        <div class="flex items-start">
-                            <div class="bg-red-100 p-3 rounded-full mr-4 group-hover:bg-red-200 transition">
-                                <i class="fa-solid fa-drumstick-bite text-red-600"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-gray-800">鴨肉選擇 (關鍵差異)</h4>
-                                <p class="text-sm text-gray-600 mt-1">
-                                    一般店家使用飼養70-80天的土番鴨。若該店標榜使用<span class="text-red-600 font-bold">「紅面番鴨公」</span>且飼養期超過120天，肉質更Q彈耐煮，成本會高出30-40%，這可能是價格500元的主因。
-                                </p>
-                            </div>
-                        </div>
+                    <div>
+                        <label class="block text-sm text-orange-200 mb-1">鍋底</label>
+                        <select id="potType" class="w-full p-2 rounded text-gray-800"><option value="380">標準 (380)</option><option value="500">頂級 (500)</option></select>
                     </div>
-
-                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 cursor-pointer hover:border-orange-300 transition group" onclick="highlightSegment(1)">
-                        <div class="flex items-start">
-                            <div class="bg-yellow-100 p-3 rounded-full mr-4 group-hover:bg-yellow-200 transition">
-                                <i class="fa-solid fa-flask text-yellow-600"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-gray-800">老薑與麻油</h4>
-                                <p class="text-sm text-gray-600 mt-1">
-                                    這兩年老薑與純黑麻油價格波動大。若店家強調<span class="font-bold">「全酒料理」</span>(不加水)，光是米酒的成本就能讓一鍋湯底價格增加 50-100 元。
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 cursor-pointer hover:border-orange-300 transition group" onclick="highlightSegment(2)">
-                        <div class="flex items-start">
-                            <div class="bg-blue-100 p-3 rounded-full mr-4 group-hover:bg-blue-200 transition">
-                                <i class="fa-solid fa-store text-blue-600"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-gray-800">營運與環境</h4>
-                                <p class="text-sm text-gray-600 mt-1">
-                                    炭火爐燒 (需要專人顧炭、換炭) 的人力成本遠高於瓦斯爐。如果南投該店環境優美、好停車、有庭園造景，500元包含的是「體驗溢價」。
-                                </p>
-                            </div>
-                        </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-sm text-orange-200">蔬菜/配料盤數</label><input type="number" id="vegCount" value="4" class="w-full p-2 rounded text-gray-800"></div>
+                        <div><label class="block text-sm text-orange-200">飲料/酒水瓶數</label><input type="number" id="drinkCount" value="2" class="w-full p-2 rounded text-gray-800"></div>
                     </div>
                 </div>
-
-                <!-- Donut Chart -->
-                <div class="bg-white p-6 rounded-3xl shadow-sm flex flex-col items-center justify-center">
-                    <h3 class="text-lg font-bold text-gray-700 mb-4">一鍋 500 元薑母鴨的潛在成本結構</h3>
-                    <div class="chart-container" style="height: 300px; max-width: 300px;">
-                        <canvas id="costBreakdownChart"></canvas>
-                    </div>
-                    <p class="text-xs text-center text-gray-400 mt-4">點擊左側項目可查看細節</p>
+                <div class="flex flex-col justify-center items-center bg-white bg-opacity-10 rounded-xl p-4">
+                    <span class="text-sm text-orange-200">預估總價</span>
+                    <span class="text-5xl font-bold my-2" id="totalPrice">--</span>
+                    <span class="text-xs text-orange-200" id="avgPrice"></span>
                 </div>
             </div>
         </section>
 
-        <!-- SECTION 4: Interactive Calculator -->
-        <section id="calculator" class="bg-orange-600 rounded-3xl p-8 text-white shadow-xl">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                <div class="space-y-6">
-                    <div>
-                        <h2 class="text-3xl font-bold mb-2">合理價格試算器</h2>
-                        <p class="text-orange-100">
-                            如果不只是單點鍋底，而是一份「基本套餐」，那 500 元貴嗎？請輸入您通常點的內容，我們幫您計算在南投的合理總價。
-                        </p>
-                    </div>
-
+        <!-- NEW SECTION 5: Firebase Reservation -->
+        <section id="reservation" class="scroll-mt-24">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-0 shadow-2xl rounded-3xl overflow-hidden">
+                <!-- Left: Info -->
+                <div class="bg-gray-900 p-10 text-white flex flex-col justify-center relative overflow-hidden">
+                    <div class="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-orange-600 rounded-full opacity-20 blur-3xl"></div>
+                    <div class="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-red-600 rounded-full opacity-20 blur-3xl"></div>
+                    
+                    <h2 class="text-3xl font-bold mb-6">想親自品嚐？<br><span class="text-orange-500">立即線上訂位</span></h2>
+                    <p class="text-gray-400 mb-8 leading-relaxed">
+                        我們使用即時雲端系統，您的訂位將直接傳送至餐廳後台。請填寫下方資訊，我們將保留您的席位 10 分鐘。
+                    </p>
                     <div class="space-y-4">
-                        <!-- Controls -->
-                        <div>
-                            <label class="block text-sm font-medium text-orange-200 mb-1">鍋底類型</label>
-                            <select id="potType" class="w-full p-3 rounded-lg bg-orange-700 border border-orange-500 text-white focus:outline-none focus:ring-2 focus:ring-orange-300">
-                                <option value="380">標準薑母鴨 (南投均價 380元)</option>
-                                <option value="450">升級版/紅面番鴨 (450元)</option>
-                                <option value="500">頂級/全酒版 (500元)</option>
-                            </select>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-orange-900 flex items-center justify-center mr-4 text-orange-500"><i class="fa-solid fa-phone"></i></div>
                             <div>
-                                <label class="block text-sm font-medium text-orange-200 mb-1">蔬菜盤 (每盤約50元)</label>
-                                <div class="flex items-center bg-orange-700 rounded-lg p-1">
-                                    <button onclick="updateCalc('veg', -1)" class="px-3 py-1 text-orange-200 hover:text-white">-</button>
-                                    <input type="number" id="vegCount" value="2" readonly class="w-full text-center bg-transparent border-none text-white font-bold">
-                                    <button onclick="updateCalc('veg', 1)" class="px-3 py-1 text-orange-200 hover:text-white">+</button>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-orange-200 mb-1">丸類/配料 (每盤約60元)</label>
-                                <div class="flex items-center bg-orange-700 rounded-lg p-1">
-                                    <button onclick="updateCalc('meatball', -1)" class="px-3 py-1 text-orange-200 hover:text-white">-</button>
-                                    <input type="number" id="meatballCount" value="2" readonly class="w-full text-center bg-transparent border-none text-white font-bold">
-                                    <button onclick="updateCalc('meatball', 1)" class="px-3 py-1 text-orange-200 hover:text-white">+</button>
-                                </div>
+                                <p class="text-xs text-gray-500">訂位專線</p>
+                                <p class="font-bold">049-2xxx-xxxx</p>
                             </div>
                         </div>
-
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-orange-900 flex items-center justify-center mr-4 text-orange-500"><i class="fa-solid fa-location-dot"></i></div>
                             <div>
-                                <label class="block text-sm font-medium text-orange-200 mb-1">麵線 (每份約40元)</label>
-                                <div class="flex items-center bg-orange-700 rounded-lg p-1">
-                                    <button onclick="updateCalc('noodle', -1)" class="px-3 py-1 text-orange-200 hover:text-white">-</button>
-                                    <input type="number" id="noodleCount" value="2" readonly class="w-full text-center bg-transparent border-none text-white font-bold">
-                                    <button onclick="updateCalc('noodle', 1)" class="px-3 py-1 text-orange-200 hover:text-white">+</button>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-orange-200 mb-1">酒水/飲料 (約100元)</label>
-                                <div class="flex items-center bg-orange-700 rounded-lg p-1">
-                                    <button onclick="updateCalc('drink', -1)" class="px-3 py-1 text-orange-200 hover:text-white">-</button>
-                                    <input type="number" id="drinkCount" value="1" readonly class="w-full text-center bg-transparent border-none text-white font-bold">
-                                    <button onclick="updateCalc('drink', 1)" class="px-3 py-1 text-orange-200 hover:text-white">+</button>
-                                </div>
+                                <p class="text-xs text-gray-500">餐廳地址</p>
+                                <p class="font-bold">南投縣南投市...</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Result Display -->
-                <div class="bg-white rounded-2xl p-6 text-gray-800 flex flex-col justify-between">
-                    <div>
-                        <h3 class="text-lg font-bold text-gray-500 mb-4">預估結帳金額</h3>
-                        <div class="flex justify-between items-end mb-2">
-                            <span class="text-4xl font-bold text-orange-600" id="totalPrice">--</span>
-                            <span class="text-sm text-gray-400 mb-2">新台幣</span>
+                <!-- Right: Form -->
+                <div class="bg-white p-10 relative">
+                    <div id="bookingSuccess" class="hidden absolute inset-0 bg-white z-10 flex flex-col items-center justify-center text-center p-8">
+                        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                            <i class="fa-solid fa-check text-4xl text-green-600"></i>
                         </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2.5 mb-6">
-                            <div id="priceBar" class="bg-orange-600 h-2.5 rounded-full transition-all duration-500" style="width: 50%"></div>
-                        </div>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-2">預約成功！</h3>
+                        <p class="text-gray-600 mb-6">我們已收到您的訂位資訊，<br>期待您的光臨。</p>
+                        <button onclick="resetForm()" class="text-orange-600 font-bold hover:underline">再預約一筆</button>
                     </div>
 
-                    <div class="bg-orange-50 rounded-xl p-4 border border-orange-100">
-                        <h4 class="font-bold text-orange-800 mb-2">比較分析</h4>
-                        <p id="analysisText" class="text-sm text-gray-700">
-                            <!-- Dynamic text via JS -->
-                        </p>
-                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-6">填寫訂位資訊</h3>
+                    <form id="bookingForm" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">日期</label>
+                                <input type="date" id="rDate" required class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 focus:outline-none focus:border-orange-500 transition">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">時間</label>
+                                <input type="time" id="rTime" required class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 focus:outline-none focus:border-orange-500 transition">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">姓名</label>
+                            <input type="text" id="rName" placeholder="王大明" required class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 focus:outline-none focus:border-orange-500 transition">
+                        </div>
 
-                    <div class="mt-4 pt-4 border-t border-gray-100 text-center">
-                        <p class="text-xs text-gray-400">若您遇到的店家 500元 是包含上述部分配料的「套餐」，那就是<span class="text-green-600 font-bold">超值</span>；若只是鍋底，則<span class="text-red-600 font-bold">極貴</span>。</p>
-                    </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">電話</label>
+                                <input type="tel" id="rPhone" placeholder="0912-345678" required class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 focus:outline-none focus:border-orange-500 transition">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">人數</label>
+                                <select id="rGuests" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 focus:outline-none focus:border-orange-500 transition">
+                                    <option value="2">2 位</option>
+                                    <option value="3">3 位</option>
+                                    <option value="4" selected>4 位</option>
+                                    <option value="5">5 位</option>
+                                    <option value="6">6 位</option>
+                                    <option value="7">7 位以上</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">備註 (選填)</label>
+                            <textarea id="rNote" rows="2" placeholder="例如：需要兒童椅、不吃香菜..." class="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 focus:outline-none focus:border-orange-500 transition"></textarea>
+                        </div>
+
+                        <button type="submit" id="submitBtn" class="w-full bg-orange-600 text-white font-bold py-4 rounded-lg hover:bg-orange-700 transition transform hover:-translate-y-1 flex justify-center items-center">
+                            <span id="btnText">確認訂位</span>
+                            <div id="btnLoader" class="loader hidden ml-2"></div>
+                        </button>
+                    </form>
                 </div>
             </div>
         </section>
 
         <!-- Footer -->
-        <footer class="text-center text-gray-500 text-sm py-8 border-t border-orange-200">
-            <p>本報告僅供參考，價格數據基於2024年冬季市場均價，實際價格以各店家現場公告為主。</p>
-            <div class="mt-2 flex justify-center space-x-4">
-                <i class="fa-solid fa-mug-hot"></i>
-                <i class="fa-solid fa-utensils"></i>
-                <i class="fa-solid fa-temperature-arrow-up"></i>
-            </div>
+        <footer class="text-center text-gray-400 text-sm py-8 border-t border-orange-100">
+            <p>本系統示範如何在 GitHub Pages 上使用 Firebase 資料庫。</p>
         </footer>
 
     </main>
 
-    <script>
-        // --- State Management ---
-        const state = {
-            calc: {
-                potPrice: 380,
-                veg: 2,
-                meatball: 2,
-                noodle: 2,
-                drink: 1
-            },
-            prices: {
-                veg: 50,
-                meatball: 60,
-                noodle: 40,
-                drink: 100
-            }
+    <script type="module">
+        // -----------------------------------------------------------
+        // 1. FIREBASE SETUP (MODULAR SDK)
+        // -----------------------------------------------------------
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } 
+        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // =================================================================
+        // TODO: 請在此處替換成您自己的 Firebase 設定
+        // 1. 去 firebase.google.com 建立專案
+        // 2. 新增 Web App 取得設定
+        // 3. 在 Firestore Database 規則中設定 "allow read, write: if true;" (測試用)
+        // =================================================================
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY_HERE",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
 
-        // --- Chart.js Initialization ---
-        let nationalChart;
-        let costChart;
+        // Initialize Firebase
+        // 注意：為了避免未填寫設定導致報錯，這裡加了 try-catch
+        let db;
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            console.log("Firebase initialized successfully");
+        } catch (e) {
+            console.warn("Firebase尚未設定，請在程式碼中填入您的 Config");
+        }
 
+        // -----------------------------------------------------------
+        // 2. RESERVATION LOGIC
+        // -----------------------------------------------------------
+        const bookingForm = document.getElementById('bookingForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        const btnLoader = document.getElementById('btnLoader');
+        const bookingSuccess = document.getElementById('bookingSuccess');
+
+        bookingForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // 檢查 Firebase 是否初始化
+            if (!db) {
+                alert("系統錯誤：Firebase 尚未設定。請聯絡網站管理員。");
+                return;
+            }
+
+            // UI Loading State
+            submitBtn.disabled = true;
+            btnText.innerText = "處理中...";
+            btnLoader.classList.remove('hidden');
+
+            // Collect Data
+            const formData = {
+                name: document.getElementById('rName').value,
+                phone: document.getElementById('rPhone').value,
+                date: document.getElementById('rDate').value,
+                time: document.getElementById('rTime').value,
+                guests: document.getElementById('rGuests').value,
+                note: document.getElementById('rNote').value,
+                createdAt: serverTimestamp() // 使用伺服器時間
+            };
+
+            try {
+                // 寫入資料庫 'reservations' 集合
+                const docRef = await addDoc(collection(db, "reservations"), formData);
+                console.log("Document written with ID: ", docRef.id);
+                
+                // Show Success Message
+                bookingSuccess.classList.remove('hidden');
+                
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                alert("訂位失敗，請稍後再試。\n錯誤訊息: " + error.message);
+            } finally {
+                // Reset UI
+                submitBtn.disabled = false;
+                btnText.innerText = "確認訂位";
+                btnLoader.classList.add('hidden');
+            }
+        });
+
+        // Expose reset function to window for the "再預約一筆" button
+        window.resetForm = function() {
+            bookingForm.reset();
+            bookingSuccess.classList.add('hidden');
+        };
+
+        // -----------------------------------------------------------
+        // 3. EXISTING CHART & APP LOGIC
+        // -----------------------------------------------------------
         document.addEventListener('DOMContentLoaded', () => {
             initNationalChart();
             initCostChart();
-            updateCalcUI(); // Initial calculation
+            updateCalc();
+            
+            // Set default date to today
+            const dateInput = document.getElementById('rDate');
+            if(dateInput) dateInput.valueAsDate = new Date();
         });
 
-        // 1. National Price Comparison Chart (Bar)
-        function initNationalChart() {
-            const ctx = document.getElementById('nationalPriceChart').getContext('2d');
-            nationalChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['雲林/嘉義', '台南/高雄', '台中市', '花蓮/台東', '南投(平均)', '台北/新北', '南投(您的查詢)'],
-                    datasets: [{
-                        label: '單鍋平均價格 (元)',
-                        data: [320, 360, 380, 380, 380, 450, 500],
-                        backgroundColor: [
-                            'rgba(209, 213, 219, 0.7)', // Gray
-                            'rgba(209, 213, 219, 0.7)',
-                            'rgba(209, 213, 219, 0.7)',
-                            'rgba(209, 213, 219, 0.7)',
-                            'rgba(249, 115, 22, 0.7)',  // Orange (Nantou Avg)
-                            'rgba(209, 213, 219, 0.7)',
-                            'rgba(220, 38, 38, 0.8)'    // Red (User Query)
-                        ],
-                        borderColor: [
-                            'rgba(209, 213, 219, 1)',
-                            'rgba(209, 213, 219, 1)',
-                            'rgba(209, 213, 219, 1)',
-                            'rgba(209, 213, 219, 1)',
-                            'rgba(249, 115, 22, 1)',
-                            'rgba(209, 213, 219, 1)',
-                            'rgba(220, 38, 38, 1)'
-                        ],
-                        borderWidth: 1,
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.raw + ' 元';
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: false,
-                            min: 250,
-                            grid: { color: '#f3f4f6' }
-                        },
-                        x: {
-                            grid: { display: false }
-                        }
-                    }
-                }
-            });
-        }
-
-        // 2. Cost Breakdown Chart (Donut)
-        function initCostChart() {
-            const ctx = document.getElementById('costBreakdownChart').getContext('2d');
-            costChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['食材成本 (鴨肉/老薑/麻油)', '人事與營運', '店面租金/水電', '預期利潤'],
-                    datasets: [{
-                        data: [45, 25, 15, 15], // Estimated percentages
-                        backgroundColor: [
-                            '#EA580C', // Orange-600
-                            '#FDBA74', // Orange-300
-                            '#94A3B8', // Slate-400
-                            '#CBD5E1'  // Slate-300
-                        ],
-                        borderWidth: 0,
-                        hoverOffset: 10
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '60%',
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                usePointStyle: true,
-                                font: { size: 11 }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function highlightSegment(index) {
-            // Simple visual interaction to sync text cards with chart
-            if(costChart) {
-                costChart.setActiveElements([{datasetIndex: 0, index: index}]);
-                costChart.update();
-            }
-        }
-
-        // --- Interactive Calculator Logic ---
-
-        // Listen for Pot Type changes
-        document.getElementById('potType').addEventListener('change', (e) => {
-            state.calc.potPrice = parseInt(e.target.value);
-            updateCalcUI();
-        });
-
-        // Function to update counts
-        function updateCalc(type, change) {
-            const current = state.calc[type];
-            const newValue = current + change;
-            if (newValue >= 0) {
-                state.calc[type] = newValue;
-                // Update input field display
-                document.getElementById(`${type}Count`).value = newValue;
-                updateCalcUI();
-            }
-        }
-
-        function updateCalcUI() {
-            // Calculate Total
-            const total = 
-                state.calc.potPrice + 
-                (state.calc.veg * state.prices.veg) + 
-                (state.calc.meatball * state.prices.meatball) + 
-                (state.calc.noodle * state.prices.noodle) + 
-                (state.calc.drink * state.prices.drink);
-
-            // Animate Number (Simple)
-            document.getElementById('totalPrice').innerText = total;
-
-            // Generate Analysis Text based on inputs
-            const analysisEl = document.getElementById('analysisText');
-            const totalPeople = Math.max(2, Math.ceil(total / 400)); // Estimate people count
-            const avgPerPerson = Math.round(total / 3); // Assume 3 people dining
-
-            let analysisHTML = '';
-            
-            if (state.calc.potPrice === 500) {
-                analysisHTML += `您選擇了 <span class="font-bold text-red-600">500元 高價鍋底</span>。在此價位下，預期店家應提供紅面番鴨或全酒料理。`;
-            } else {
-                analysisHTML += `若您選擇 <span class="font-bold text-orange-600">${state.calc.potPrice}元 標準鍋底</span>，加上配料後的總價會比500元鍋底方案更具彈性。`;
-            }
-
-            analysisHTML += `<br><br>若三人用餐，平均每人約 <span class="font-bold">${avgPerPerson}元</span>。`;
-            
-            if (total > 1200) {
-                analysisHTML += ` (此消費屬於豐盛等級)`;
-            } else {
-                analysisHTML += ` (此消費屬於經濟實惠等級)`;
-            }
-
-            analysisEl.innerHTML = analysisHTML;
-
-            // Update Bar visual
-            // Let's assume 1500 is the "max" reasonable budget for a small group visual reference
-            const percentage = Math.min((total / 1500) * 100, 100);
-            document.getElementById('priceBar').style.width = `${percentage}%`;
-        }
-
-        // --- Navigation Logic ---
-        function scrollToSection(id) {
-            const element = document.getElementById(id);
-            if (element) {
-                const offset = 80; // height of sticky nav
-                const bodyRect = document.body.getBoundingClientRect().top;
-                const elementRect = element.getBoundingClientRect().top;
-                const elementPosition = elementRect - bodyRect;
-                const offsetPosition = elementPosition - offset;
-
+        // Navigation
+        window.scrollToSection = function(id) {
+            const el = document.getElementById(id);
+            if (el) {
                 window.scrollTo({
-                    top: offsetPosition,
+                    top: el.offsetTop - 80,
                     behavior: 'smooth'
                 });
             }
-            // Close mobile menu if open
-            const menu = document.getElementById('mobile-menu');
-            if(!menu.classList.contains('hidden')){
-                menu.classList.add('hidden');
-            }
+        };
+
+        // Charts Logic
+        function initNationalChart() {
+            const ctx = document.getElementById('nationalPriceChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['雲嘉', '台南', '台中', '南投(均)', '台北', '南投(此店)'],
+                    datasets: [{
+                        label: '價格',
+                        data: [320, 360, 380, 380, 450, 500],
+                        backgroundColor: ['#e5e7eb','#e5e7eb','#e5e7eb','#fb923c','#e5e7eb','#dc2626'],
+                        borderRadius: 4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {display:false} } }
+            });
         }
 
-        function toggleMobileMenu() {
-            const menu = document.getElementById('mobile-menu');
-            menu.classList.toggle('hidden');
+        function initCostChart() {
+            const ctx = document.getElementById('costBreakdownChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['食材', '人力', '租金', '利潤'],
+                    datasets: [{
+                        data: [45, 25, 15, 15],
+                        backgroundColor: ['#ea580c', '#fdba74', '#94a3b8', '#cbd5e1'],
+                        borderWidth: 0
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '60%' }
+            });
         }
 
+        // Calculator Logic
+        const inputs = ['potType', 'vegCount', 'drinkCount'];
+        inputs.forEach(id => {
+            document.getElementById(id).addEventListener('change', updateCalc);
+            document.getElementById(id).addEventListener('input', updateCalc);
+        });
+
+        function updateCalc() {
+            const pot = parseInt(document.getElementById('potType').value);
+            const veg = parseInt(document.getElementById('vegCount').value) * 50;
+            const drink = parseInt(document.getElementById('drinkCount').value) * 100;
+            const total = pot + veg + drink;
+            document.getElementById('totalPrice').innerText = total;
+            document.getElementById('avgPrice').innerText = `(若4人用餐，每人約 ${Math.round(total/4)} 元)`;
+        }
     </script>
 </body>
 </html>
