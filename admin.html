@@ -14,7 +14,7 @@
 </head>
 <body>
 
-    <!-- 1. 登入畫面 (簡易防護) -->
+    <!-- 1. 登入畫面 -->
     <div id="loginSection" class="min-h-screen flex items-center justify-center bg-gray-800">
         <div class="bg-white p-8 rounded-lg shadow-xl w-96">
             <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">後台管理登入</h2>
@@ -27,7 +27,7 @@
         </div>
     </div>
 
-    <!-- 2. 管理儀表板 (登入後顯示) -->
+    <!-- 2. 管理儀表板 -->
     <div id="dashboardSection" class="hidden min-h-screen">
         <!-- Header -->
         <nav class="bg-white shadow mb-8">
@@ -44,21 +44,27 @@
         <!-- Content -->
         <div class="max-w-7xl mx-auto px-4">
             
-            <!-- 狀態卡片 -->
+            <!-- 狀態與工具列 -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div class="bg-white p-6 rounded-lg shadow border-l-4 border-orange-500">
                     <p class="text-gray-500 text-sm">總訂位數</p>
                     <p class="text-3xl font-bold text-gray-800" id="totalCount">0</p>
                 </div>
-                <!-- 這裡可以擴充更多統計數據 -->
             </div>
 
-            <!-- 工具列 -->
+            <!-- 按鈕區 -->
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-xl font-bold text-gray-700">預約列表</h3>
-                <button onclick="loadReservations()" class="bg-white border border-gray-300 text-gray-600 px-4 py-2 rounded hover:bg-gray-50 transition">
-                    <i class="fa-solid fa-rotate-right mr-1"></i> 重新整理
-                </button>
+                <div>
+                    <!-- 新增：匯出 CSV 按鈕 -->
+                    <button onclick="exportCSV()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition mr-2 shadow">
+                        <i class="fa-solid fa-file-csv mr-1"></i> 匯出 CSV
+                    </button>
+                    
+                    <button onclick="loadReservations()" class="bg-white border border-gray-300 text-gray-600 px-4 py-2 rounded hover:bg-gray-50 transition shadow">
+                        <i class="fa-solid fa-rotate-right mr-1"></i> 重新整理
+                    </button>
+                </div>
             </div>
 
             <!-- 表格 -->
@@ -75,15 +81,7 @@
                             </tr>
                         </thead>
                         <tbody id="reservationTableBody">
-                            <!-- 資料會由 JS 插入這裡 -->
-                            <tr>
-                                <td colspan="5" class="px-5 py-10 text-center text-gray-500">
-                                    <div class="flex justify-center items-center">
-                                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mr-2"></div>
-                                        載入資料中...
-                                    </div>
-                                </td>
-                            </tr>
+                            <tr><td colspan="5" class="px-5 py-10 text-center text-gray-500">載入中...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -92,15 +90,12 @@
     </div>
 
     <script type="module">
-        // -----------------------------------------------------------
-        // 1. FIREBASE SETUP
-        // -----------------------------------------------------------
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, getDocs, deleteDoc, doc, query, orderBy } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // =================================================================
-        // TODO: 請再次在此處貼上您的 Firebase Config
+        // TODO: 請在此處貼上您的 Firebase Config (跟 index.html 一樣)
         // =================================================================
         const firebaseConfig = {
             apiKey: "AIzaSyAYgc49iXduqsebhzgORrQlUZ-goW4U3kk",
@@ -120,19 +115,16 @@
             console.error("Firebase 初始化失敗");
         }
 
-        // -----------------------------------------------------------
-        // 2. 登入邏輯 (簡易版)
-        // -----------------------------------------------------------
+        // --- 登入邏輯 ---
         const loginSection = document.getElementById('loginSection');
         const dashboardSection = document.getElementById('dashboardSection');
 
         window.checkLogin = function() {
             const pwd = document.getElementById('adminPassword').value;
-            // 這裡設定簡易密碼，您可以自行修改字串
             if (pwd === "admin123") {
                 loginSection.classList.add('hidden');
                 dashboardSection.classList.remove('hidden');
-                loadReservations(); // 登入成功後載入資料
+                loadReservations(); 
             } else {
                 alert("密碼錯誤！");
             }
@@ -142,19 +134,15 @@
             location.reload();
         }
 
-        // -----------------------------------------------------------
-        // 3. 資料載入邏輯
-        // -----------------------------------------------------------
+        // --- 資料載入 ---
         window.loadReservations = async function() {
             if (!db) return;
             const tbody = document.getElementById('reservationTableBody');
             const totalCountEl = document.getElementById('totalCount');
             
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4">載入中...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4"><div class="animate-spin inline-block w-6 h-6 border-2 border-orange-500 rounded-full border-t-transparent"></div> 載入中...</td></tr>`;
 
             try {
-                // 抓取 'reservations' 集合，並依照建立時間(createdAt) 倒序排列
-                // 注意：若第一次使用 orderBy 可能會在 Console 跳出建立索引(Index)的連結，需點擊建立
                 const q = query(collection(db, "reservations"), orderBy("date", "asc")); 
                 const querySnapshot = await getDocs(q);
 
@@ -164,74 +152,104 @@
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
                     count++;
-                    
-                    // 組合 HTML
                     html += `
                         <tr class="hover:bg-gray-50 border-b border-gray-200">
                             <td class="px-5 py-5 bg-white text-sm">
-                                <div class="flex items-center">
-                                    <div class="ml-3">
-                                        <p class="text-gray-900 font-bold whitespace-no-wrap">${data.date}</p>
-                                        <p class="text-gray-500 whitespace-no-wrap">${data.time}</p>
-                                    </div>
-                                </div>
+                                <div><p class="font-bold text-gray-900">${data.date}</p><p class="text-gray-500">${data.time}</p></div>
                             </td>
                             <td class="px-5 py-5 bg-white text-sm">
-                                <p class="text-gray-900 whitespace-no-wrap">${data.name}</p>
-                                <p class="text-gray-500 whitespace-no-wrap">${data.phone}</p>
+                                <div><p class="text-gray-900">${data.name}</p><p class="text-gray-500">${data.phone}</p></div>
                             </td>
                             <td class="px-5 py-5 bg-white text-sm">
-                                <span class="relative inline-block px-3 py-1 font-semibold text-orange-900 leading-tight">
-                                    <span aria-hidden class="absolute inset-0 bg-orange-200 opacity-50 rounded-full"></span>
-                                    <span class="relative">${data.guests} 位</span>
-                                </span>
+                                <span class="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-semibold">${data.guests} 位</span>
                             </td>
+                            <td class="px-5 py-5 bg-white text-sm text-gray-600">${data.note || '-'}</td>
                             <td class="px-5 py-5 bg-white text-sm">
-                                <p class="text-gray-900 whitespace-no-wrap">${data.note || '-'}</p>
-                            </td>
-                            <td class="px-5 py-5 bg-white text-sm">
-                                <button onclick="deleteReservation('${doc.id}')" class="text-red-600 hover:text-red-900 font-bold">
-                                    <i class="fa-solid fa-trash"></i> 刪除
-                                </button>
+                                <button onclick="deleteReservation('${doc.id}')" class="text-red-600 hover:text-red-900 font-bold text-xs border border-red-200 px-2 py-1 rounded">刪除</button>
                             </td>
                         </tr>
                     `;
                 });
 
-                if (count === 0) {
-                    html = `<tr><td colspan="5" class="text-center py-8 text-gray-500">目前沒有任何訂位資料</td></tr>`;
-                }
-
+                if (count === 0) html = `<tr><td colspan="5" class="text-center py-8 text-gray-500">尚無資料</td></tr>`;
+                
                 tbody.innerHTML = html;
                 totalCountEl.innerText = count;
 
             } catch (error) {
                 console.error("Error:", error);
-                // 如果是因為還沒建立索引導致的錯誤，顯示提示
                 if (error.message.includes("index")) {
-                     alert("系統提示：請查看瀏覽器 Console (F12)，點擊連結建立 Firebase 索引，才能使用排序功能。");
+                     alert("請按 F12 打開 Console 建立 Firebase 索引。");
                 } else {
-                     tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-500">載入失敗：${error.message}</td></tr>`;
+                     tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-500">載入失敗</td></tr>`;
                 }
             }
         }
 
-        // -----------------------------------------------------------
-        // 4. 刪除邏輯
-        // -----------------------------------------------------------
+        // --- 刪除功能 ---
         window.deleteReservation = async function(docId) {
-            if (!confirm("確定要刪除這筆訂位資料嗎？刪除後無法復原。")) return;
-
+            if (!confirm("確定要刪除此訂單嗎？")) return;
             try {
                 await deleteDoc(doc(db, "reservations", docId));
-                alert("刪除成功！");
-                loadReservations(); // 重新載入列表
+                loadReservations();
             } catch (error) {
-                console.error("Error removing document: ", error);
                 alert("刪除失敗");
             }
         }
+
+        // --- CSV 匯出功能 (新功能) ---
+        window.exportCSV = async function() {
+            if (!db) return;
+            
+            // 1. 重新抓取最新資料以確保匯出的是最新的
+            const q = query(collection(db, "reservations"), orderBy("date", "asc"));
+            const querySnapshot = await getDocs(q);
+            
+            if (querySnapshot.empty) {
+                alert("目前沒有資料可以匯出！");
+                return;
+            }
+
+            // 2. 準備 CSV 內容
+            // \uFEFF 是 BOM (Byte Order Mark)，讓 Excel 知道這是 UTF-8 編碼，才不會顯示亂碼
+            let csvContent = "\uFEFF"; 
+            
+            // 標題列
+            csvContent += "日期,時間,姓名,電話,人數,備註\n";
+
+            querySnapshot.forEach((doc) => {
+                const d = doc.data();
+                // 為了避免內容中有逗號導致欄位錯亂，我們把每個欄位都用雙引號包起來
+                // 如果備註裡有雙引號，要換成兩個雙引號 (Excel 規則)
+                const safeNote = (d.note || "").replace(/"/g, '""');
+                
+                const row = [
+                    `"${d.date}"`,
+                    `"${d.time}"`,
+                    `"${d.name}"`,
+                    `"${d.phone}"`,
+                    `"${d.guests}"`,
+                    `"${safeNote}"`
+                ];
+                
+                csvContent += row.join(",") + "\n";
+            });
+
+            // 3. 觸發下載
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            
+            // 設定檔名：訂位資料_2023-12-08.csv
+            const today = new Date().toISOString().split('T')[0];
+            link.setAttribute("href", url);
+            link.setAttribute("download", `訂位資料_${today}.csv`);
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
     </script>
 </body>
-
 </html>
