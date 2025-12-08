@@ -1,0 +1,9 @@
+const firebaseConfig = {
+  apiKey: "AIzaSyAYgc49iXduqsebhzgORrQlUZ-goW4U3kk",
+  authDomain: "ginger-duck-booking.firebaseapp.com",
+  projectId: "ginger-duck-booking",
+  storageBucket: "ginger-duck-booking.firebasestorage.app",
+  messagingSenderId: "944895605206",
+  appId: "1:944895605206:web:f2e006b9dcd0749a478c77",
+  measurementId: "G-72Z5CRG1RF"
+};
