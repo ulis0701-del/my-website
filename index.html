@@ -477,8 +477,8 @@
         // 1. FIREBASE SETUP
         // -----------------------------------------------------------
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, query, where, serverTimestamp } 
-        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // =================================================================
         // TODO: 請在此處替換成您自己的 Firebase Config
@@ -500,6 +500,42 @@ const firebaseConfig = {
         } catch (e) {
             console.warn("Firebase Config Missing");
         }
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+
+      // --- 關鍵步驟：執行匿名登入 ---
+      
+      signInAnonymously(auth)
+        .then(() => {
+          // 登入成功！
+          console.log("✅ 匿名登入成功！");
+          document.getElementById("status").innerText = "狀態：已連線 (匿名登入成功)";
+
+          // --- 這裡可以開始寫入或讀取資料 ---
+          // 例如：新增一筆測試資料到 'users' 集合
+          /*
+          addDoc(collection(db, "users"), {
+            name: "訪客",
+            time: new Date()
+          }).then(() => {
+            console.log("資料寫入成功");
+          });
+          */
+        })
+        .catch((error) => {
+          console.error("❌ 登入失敗：", error.code, error.message);
+          document.getElementById("status").innerText = "狀態：登入失敗 (請檢查 Console)";
+        });
+
+      // (選用) 監聽狀態改變：確認使用者是否持續保持登入
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          const uid = user.uid;
+          console.log("目前使用者 ID (UID):", uid);
+        } else {
+          console.log("使用者已登出");
+        }
+      });
 
         // -----------------------------------------------------------
         // 2. LOGIC: Booking & Checking
@@ -681,5 +717,6 @@ const firebaseConfig = {
     </script>
 </body>
 </html>
+
 
 
