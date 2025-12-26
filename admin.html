@@ -6,19 +6,16 @@
     <title>薑母鴨訂位中控台</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- SweetAlert2 for nicer alerts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #f3f4f6; }
         .hidden { display: none; }
-        /* Modal Transition */
         .modal { transition: opacity 0.25s ease; }
     </style>
 </head>
 <body class="bg-gray-100">
 
-    <!-- 1. 登入畫面 -->
     <div id="loginSection" class="min-h-screen flex items-center justify-center bg-gray-800">
         <div class="bg-white p-8 rounded-lg shadow-2xl w-96 transform transition-all hover:scale-105">
             <div class="text-center mb-6">
@@ -30,15 +27,13 @@
             <input type="password" id="adminPassword" placeholder="輸入密碼" 
                    class="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
                    onkeypress="handleLoginKeyPress(event)">
-            <button onclick="checkLogin()" class="w-full bg-orange-600 text-white font-bold py-3 rounded-lg hover:bg-orange-700 transition shadow-lg">
+            <button onclick="checkLogin()" id="loginBtn" class="w-full bg-orange-600 text-white font-bold py-3 rounded-lg hover:bg-orange-700 transition shadow-lg">
                 進入系統
             </button>
         </div>
     </div>
 
-    <!-- 2. 管理儀表板 -->
     <div id="dashboardSection" class="hidden min-h-screen pb-10">
-        <!-- Navbar -->
         <nav class="bg-white shadow-md sticky top-0 z-10">
             <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
                 <div class="flex items-center text-orange-600 font-bold text-xl tracking-wide">
@@ -53,10 +48,8 @@
             </div>
         </nav>
 
-        <!-- Main Content -->
         <div class="max-w-7xl mx-auto px-4 mt-8">
             
-            <!-- 數據概覽卡片 -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-blue-500">
                     <p class="text-gray-400 text-xs uppercase font-bold">總訂單數</p>
@@ -76,7 +69,6 @@
                 </div>
             </div>
 
-            <!-- 工具列 (搜尋與篩選) -->
             <div class="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
                 <div class="flex w-full md:w-auto space-x-2">
                     <div class="relative w-full md:w-64">
@@ -99,7 +91,6 @@
                 </div>
             </div>
 
-            <!-- 預約列表表格 -->
             <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
                 <div class="overflow-x-auto">
                     <table class="min-w-full leading-normal">
@@ -114,15 +105,13 @@
                             </tr>
                         </thead>
                         <tbody id="tableBody">
-                            <!-- JS 生成內容 -->
-                        </tbody>
+                            </tbody>
                     </table>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 3. 編輯視窗 (Modal) -->
     <div id="editModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="closeEditModal()"></div>
@@ -145,7 +134,6 @@
                     </div>
                     <div class="mb-4">
                         <label class="block text-xs font-bold text-gray-500 mb-1">人數</label>
-                        <!-- 修改處：改為 input type="number" -->
                         <div class="flex items-center">
                             <input type="number" id="editGuests" min="1" placeholder="輸入人數" class="w-full border rounded p-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500">
                             <span class="ml-2 text-gray-500 text-sm">位</span>
@@ -169,78 +157,106 @@
     </div>
 
     <script type="module">
+        // -----------------------------------------------------------
+        // 1. FIREBASE 設定 (已包含 Auth 和 Firestore)
+        // -----------------------------------------------------------
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        // 注意：這裡新增了 getAuth 和 signInAnonymously
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, getDocs, deleteDoc, updateDoc, doc, query, orderBy } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // =================================================================
-        // TODO: 請在此處貼上您的 Firebase Config (請務必替換)
-        // =================================================================
-const firebaseConfig = {
-  apiKey: "AIzaSyAYgc49iXduqsebhzgORrQlUZ-goW4U3kk",
-  authDomain: "ginger-duck-booking.firebaseapp.com",
-  projectId: "ginger-duck-booking",
-  storageBucket: "ginger-duck-booking.firebasestorage.app",
-  messagingSenderId: "944895605206",
-  appId: "1:944895605206:web:f2e006b9dcd0749a478c77",
-  measurementId: "G-72Z5CRG1RF"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyAYgc49iXduqsebhzgORrQlUZ-goW4U3kk",
+            authDomain: "ginger-duck-booking.firebaseapp.com",
+            projectId: "ginger-duck-booking",
+            storageBucket: "ginger-duck-booking.firebasestorage.app",
+            messagingSenderId: "944895605206",
+            appId: "1:944895605206:web:f2e006b9dcd0749a478c77",
+            measurementId: "G-72Z5CRG1RF"
+        };
 
         // Initialize Firebase
-        let db;
+        let app, auth, db;
+        
         try {
-            // 自動檢查是否忘記設定
-            if (firebaseConfig.apiKey === "YOUR_API_KEY_HERE" || firebaseConfig.projectId === "YOUR_PROJECT_ID") {
-                Swal.fire({
-                    icon: 'error',
-                    title: '尚未設定 Firebase',
-                    html: '您忘記將 <b>firebaseConfig</b> 替換成您自己的設定了！<br>請打開程式碼，找到最下方的 script 區塊，填入您的金鑰。',
-                    allowOutsideClick: false,
-                    confirmButtonText: '我知道了'
-                });
-                throw new Error("Firebase config not set by user");
-            }
-
-            const app = initializeApp(firebaseConfig);
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app); // 初始化 Auth
             db = getFirestore(app);
+            console.log("Admin Firebase Initialized");
         } catch (e) {
             console.error("Firebase Init Error", e);
+            Swal.fire('系統錯誤', 'Firebase 初始化失敗', 'error');
         }
 
         // Global Data Storage
-        let allReservations = []; // 儲存所有下載的資料，供前端篩選使用
+        let allReservations = []; 
         let isTodayFilterActive = false;
 
         // -----------------------------------------------------------
-        // 1. 登入與持久化邏輯
+        // 2. 登入邏輯 (關鍵修改：加入 Firebase 匿名登入)
         // -----------------------------------------------------------
         const loginSection = document.getElementById('loginSection');
         const dashboardSection = document.getElementById('dashboardSection');
 
-        // 頁面載入時檢查是否已登入
-        window.onload = function() {
-            const isLoggedIn = localStorage.getItem('adminLoggedIn');
-            if (isLoggedIn === 'true') {
-                showDashboard();
-            } else {
-                loginSection.classList.remove('hidden');
-            }
-            // 顯示即時時間
+        window.onload = async function() {
+            // 自動顯示時間
             setInterval(() => {
                 const now = new Date();
                 document.getElementById('currentTime').innerText = now.toLocaleString('zh-TW', {hour12: false, hour:'2-digit', minute:'2-digit'});
             }, 1000);
+
+            // 檢查是否曾經登入過後台 (LocalStorage)
+            const isLocalLoggedIn = localStorage.getItem('adminLoggedIn');
+            
+            if (isLocalLoggedIn === 'true') {
+                // 如果已經登入過，嘗試靜默連線 Firebase
+                await performFirebaseLogin();
+                showDashboard();
+            } else {
+                loginSection.classList.remove('hidden');
+            }
         };
 
         window.handleLoginKeyPress = function(e) {
             if (e.key === 'Enter') checkLogin();
         }
 
-        window.checkLogin = function() {
+        // 執行 Firebase 登入的封裝函式
+        async function performFirebaseLogin() {
+            try {
+                // 這裡執行匿名登入，讓後台取得讀寫資料庫的權限
+                await signInAnonymously(auth);
+                console.log("Admin Firebase Login Success");
+                return true;
+            } catch (error) {
+                console.error("Admin Firebase Login Failed", error);
+                Swal.fire('連線錯誤', '無法連接資料庫驗證', 'error');
+                return false;
+            }
+        }
+
+        window.checkLogin = async function() {
             const pwd = document.getElementById('adminPassword').value;
+            const btn = document.getElementById('loginBtn');
+            
+            // 簡單的前端密碼驗證 (實務上建議後端驗證，但 Demo 這樣可接受)
             if (pwd === "admin123") {
-                localStorage.setItem('adminLoggedIn', 'true'); // 儲存登入狀態
-                showDashboard();
+                // UI Loading
+                const originalText = btn.innerText;
+                btn.innerText = "驗證中...";
+                btn.disabled = true;
+
+                // 執行 Firebase 連線
+                const isConnected = await performFirebaseLogin();
+                
+                if (isConnected) {
+                    localStorage.setItem('adminLoggedIn', 'true');
+                    showDashboard();
+                } else {
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }
             } else {
                 Swal.fire({ icon: 'error', title: '密碼錯誤', text: '請重新輸入' });
             }
@@ -254,11 +270,12 @@ const firebaseConfig = {
         function showDashboard() {
             loginSection.classList.add('hidden');
             dashboardSection.classList.remove('hidden');
+            // 登入成功後，立刻抓取資料
             fetchData();
         }
 
         // -----------------------------------------------------------
-        // 2. 資料獲取與渲染
+        // 3. 資料獲取與渲染
         // -----------------------------------------------------------
         window.fetchData = async function() {
             if (!db) return;
@@ -266,22 +283,25 @@ const firebaseConfig = {
             tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10"><i class="fa-solid fa-circle-notch fa-spin text-orange-500 text-2xl"></i><br>資料載入中...</td></tr>`;
 
             try {
-                // 預設抓取全部，前端做篩選
                 const q = query(collection(db, "reservations"), orderBy("date", "asc"));
                 const querySnapshot = await getDocs(q);
                 
                 allReservations = [];
                 querySnapshot.forEach((doc) => {
+                    // 將資料存入記憶體
                     allReservations.push({ id: doc.id, ...doc.data() });
                 });
 
-                filterData(); // 呼叫篩選與渲染
+                // 依照目前的搜尋條件重新渲染
+                filterData(); 
 
             } catch (error) {
                 console.error(error);
-                if(error.message.includes("index")) {
+                if(error.message.includes("permission")) {
+                     Swal.fire('權限錯誤', '系統偵測到您未登入 Firebase，請嘗試重新整理頁面。', 'error');
+                } else if(error.message.includes("index")) {
                     Swal.fire('系統提示', '請按 F12 開啟 Console 建立 Firebase Index', 'info');
-                } else if (!error.message.includes("config not set")) {
+                } else {
                     Swal.fire('錯誤', '載入資料失敗: ' + error.message, 'error');
                 }
             }
@@ -291,7 +311,6 @@ const firebaseConfig = {
             const searchVal = document.getElementById('searchInput').value.toLowerCase();
             const todayStr = new Date().toISOString().split('T')[0];
 
-            // 篩選邏輯
             let filtered = allReservations.filter(item => {
                 const matchSearch = (item.name && item.name.toLowerCase().includes(searchVal)) || 
                                     (item.phone && item.phone.includes(searchVal));
@@ -299,6 +318,12 @@ const firebaseConfig = {
                 const matchDate = isTodayFilterActive ? (item.date === todayStr) : true;
 
                 return matchSearch && matchDate;
+            });
+
+            // 這裡可以加入時間排序 (雖然資料庫已排日期，但記憶體內也可以再排一次以防萬一)
+            filtered.sort((a, b) => {
+                if (a.date !== b.date) return a.date.localeCompare(b.date);
+                return a.time.localeCompare(b.time);
             });
 
             updateStats(filtered);
@@ -327,7 +352,6 @@ const firebaseConfig = {
 
             let html = "";
             data.forEach(item => {
-                // 狀態判斷 (若資料庫無 status 欄位則預設為 pending)
                 const isCheckedIn = item.status === 'seated';
                 const statusBadge = isCheckedIn 
                     ? `<span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">已報到</span>`
@@ -369,10 +393,10 @@ const firebaseConfig = {
         function updateStats(data) {
             const todayStr = new Date().toISOString().split('T')[0];
             
-            // 總訂單 (當前篩選下的)
+            // 總訂單 (當前顯示)
             document.getElementById('statTotalOrders').innerText = data.length;
 
-            // 今日訂單 (從全資料中算)
+            // 今日訂單 (使用全部資料計算，不管是否有搜尋)
             const todayOrders = allReservations.filter(x => x.date === todayStr);
             document.getElementById('statTodayOrders').innerText = todayOrders.length;
 
@@ -391,16 +415,16 @@ const firebaseConfig = {
         }
 
         // -----------------------------------------------------------
-        // 3. 互動功能 (狀態/編輯/刪除/匯出)
+        // 4. 互動功能 (狀態/編輯/刪除/匯出)
         // -----------------------------------------------------------
 
-        // 切換報到狀態
         window.toggleStatus = async function(id, currentStatus) {
             const newStatus = (currentStatus === 'seated') ? 'pending' : 'seated';
-            // 樂觀更新 (先改前端陣列顯示，再送後端)
+            
+            // 樂觀更新
             const idx = allReservations.findIndex(x => x.id === id);
             if(idx > -1) allReservations[idx].status = newStatus;
-            filterData(); // 重新渲染
+            filterData(); 
 
             try {
                 const docRef = doc(db, "reservations", id);
@@ -408,10 +432,12 @@ const firebaseConfig = {
             } catch (e) {
                 console.error("Update failed", e);
                 Swal.fire('錯誤', '狀態更新失敗', 'error');
+                // 失敗時回滾
+                if(idx > -1) allReservations[idx].status = currentStatus;
+                filterData();
             }
         };
 
-        // 編輯 Modal
         window.openEditModal = function(id) {
             const item = allReservations.find(x => x.id === id);
             if (!item) return;
@@ -441,7 +467,7 @@ const firebaseConfig = {
             try {
                 await updateDoc(doc(db, "reservations", id), newData);
                 
-                // 更新本地資料與畫面
+                // 更新記憶體
                 const idx = allReservations.findIndex(x => x.id === id);
                 if (idx > -1) {
                     allReservations[idx] = { ...allReservations[idx], ...newData };
@@ -456,7 +482,6 @@ const firebaseConfig = {
             }
         };
 
-        // 刪除
         window.deleteReservation = function(id) {
             Swal.fire({
                 title: '確定刪除?',
@@ -481,11 +506,8 @@ const firebaseConfig = {
             });
         };
 
-        // CSV 匯出 (沿用之前的邏輯，但支援篩選後的資料)
         window.exportCSV = function() {
-            // 只匯出目前篩選出來的資料 (filtered data)
-            // 由於 filterData 更新了畫面，我們重新跑一次篩選來拿資料，或直接用全資料
-            // 這裡選擇匯出「當前搜尋結果」
+            // 使用當前的篩選結果
             const searchVal = document.getElementById('searchInput').value.toLowerCase();
             const todayStr = new Date().toISOString().split('T')[0];
             let dataToExport = allReservations.filter(item => {
@@ -494,6 +516,8 @@ const firebaseConfig = {
                 const matchDate = isTodayFilterActive ? (item.date === todayStr) : true;
                 return matchSearch && matchDate;
             });
+            // 確保匯出時也是有順序的
+            dataToExport.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
 
             if (dataToExport.length === 0) {
                 Swal.fire('提示', '目前沒有資料可匯出', 'info');
@@ -506,6 +530,7 @@ const firebaseConfig = {
             dataToExport.forEach((d) => {
                 const statusStr = (d.status === 'seated') ? '已報到' : '未報到';
                 const safeNote = (d.note || "").replace(/"/g, '""');
+                // CSV 格式處理: 避免逗號和換行導致格式跑掉
                 const row = [
                     `"${statusStr}"`, `"${d.date}"`, `"${d.time}"`, `"${d.name}"`, 
                     `"${d.phone}"`, `"${d.guests}"`, `"${safeNote}"`
